@@ -38,34 +38,348 @@ function showToast(message) {
   showToast._t = setTimeout(() => toast.classList.remove('show'), 2600);
 }
 
-// --- Cart (placeholder — no real checkout yet) ---
-// TODO: replace with real cart/checkout logic (Stripe, Shopify, custom backend, etc.)
-const CART_KEY = 'nelva_cart_count';
+// ============================================
+// Cart + checkout
+// ============================================
+
+// --- Business config — REPLACE THESE with live values ---
+const WHATSAPP_NUMBER = '2348123354382';                 // international format, no + or spaces
+const PAYSTACK_PUBLIC_KEY = 'pk_test_REPLACE_WITH_YOUR_KEY'; // from dashboard.paystack.com → Settings → API Keys
+const ORDER_EMAIL_ENDPOINT = 'https://formspree.io/f/mljerrjp'; // Formspree form that receives order emails (business copy)
+// EmailJS — sends the customer their order confirmation (emailjs.com, free tier). Fill in from your EmailJS dashboard.
+const EMAILJS_PUBLIC_KEY = 'zTwFD8aaBqCOWG_i5';           // Account → General → Public Key
+const EMAILJS_SERVICE_ID = 'service_qjbgny3';              // Email Services → Service ID
+const EMAILJS_TEMPLATE_ID = 'template_u859tz8';           // Email Templates → Template ID
+// --------------------------------------------------------
+
+const CART_KEY = 'nelva_cart';
+const DETAILS_KEY = 'nelva_checkout_details';
 const cartCountEl = document.getElementById('cartCount');
 
-function getCartCount() {
-  return parseInt(localStorage.getItem(CART_KEY) || '0', 10);
+function getCart() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+    return Array.isArray(raw) ? raw : [];
+  } catch (e) {
+    return [];
+  }
 }
-function setCartCount(n) {
-  localStorage.setItem(CART_KEY, String(n));
-  if (cartCountEl) cartCountEl.textContent = n;
+function saveCart(cart) {
+  localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  updateCartCount();
 }
-setCartCount(getCartCount());
+function cartQuantity() {
+  return getCart().reduce((sum, item) => sum + item.qty, 0);
+}
+function cartSubtotal() {
+  return getCart().reduce((sum, item) => sum + item.price * item.qty, 0);
+}
+function updateCartCount() {
+  if (cartCountEl) cartCountEl.textContent = cartQuantity();
+}
+function formatNaira(amount) {
+  return '₦' + Number(amount).toLocaleString('en-NG');
+}
+function addToCart(name, price, image) {
+  const cart = getCart();
+  const existing = cart.find((item) => item.name === name);
+  if (existing) {
+    existing.qty += 1;
+  } else {
+    cart.push({ name, price, image: image || '', qty: 1 });
+  }
+  saveCart(cart);
+}
+function generateOrderRef() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 6; i += 1) s += chars[Math.floor(Math.random() * chars.length)];
+  return 'NN-' + s;
+}
+
+updateCartCount();
 
 document.querySelectorAll('.add-cart-btn').forEach((btn) => {
+  if (btn.disabled) return;
   btn.addEventListener('click', () => {
     const card = btn.closest('.product-card');
-    const name = card ? card.dataset.name : 'Item';
-    setCartCount(getCartCount() + 1);
+    if (!card) return;
+    const name = card.dataset.name || 'Item';
+    const price = parseInt(card.dataset.price || '0', 10);
+    const img = card.querySelector('.product-photo img');
+    addToCart(name, price, img ? img.getAttribute('src') : '');
     showToast(`${name} added to cart`);
   });
 });
 
-const cartBtn = document.getElementById('cartBtn');
-if (cartBtn) {
-  cartBtn.addEventListener('click', () => {
-    showToast('Checkout is coming soon — thanks for your patience!');
+// ============================================
+// Checkout page
+// ============================================
+const checkoutGrid = document.getElementById('checkoutGrid');
+if (checkoutGrid) {
+  const cartEmpty = document.getElementById('cartEmpty');
+  const orderConfirm = document.getElementById('orderConfirm');
+  const cartItemsEl = document.getElementById('cartItems');
+  const subtotalEl = document.getElementById('summarySubtotal');
+  const totalEl = document.getElementById('summaryTotal');
+  const form = document.getElementById('checkoutForm');
+  const noteEl = document.getElementById('checkoutNote');
+  const whatsappBtn = document.getElementById('whatsappBtn');
+  const paystackBtn = document.getElementById('paystackBtn');
+  const FIELDS = ['name', 'phone', 'email', 'address', 'notes'];
+  const emailjsReady = typeof emailjs !== 'undefined' && !EMAILJS_PUBLIC_KEY.includes('REPLACE');
+  if (emailjsReady) emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
+  // Restore previously entered delivery details
+  try {
+    const saved = JSON.parse(localStorage.getItem(DETAILS_KEY) || '{}');
+    FIELDS.forEach((k) => {
+      if (saved[k] && form.elements[k]) form.elements[k].value = saved[k];
+    });
+  } catch (e) { /* ignore */ }
+
+  function getDetails() {
+    return {
+      name: form.elements.name.value.trim(),
+      phone: form.elements.phone.value.trim(),
+      email: form.elements.email.value.trim(),
+      address: form.elements.address.value.trim(),
+      notes: form.elements.notes.value.trim(),
+    };
+  }
+
+  form.addEventListener('input', () => {
+    localStorage.setItem(DETAILS_KEY, JSON.stringify(getDetails()));
   });
+
+  function renderCheckout() {
+    const cart = getCart();
+
+    if (cart.length === 0) {
+      checkoutGrid.hidden = true;
+      cartEmpty.hidden = false;
+      return;
+    }
+    checkoutGrid.hidden = false;
+    cartEmpty.hidden = true;
+    orderConfirm.hidden = true;
+
+    cartItemsEl.innerHTML = cart.map((item, i) => `
+      <div class="cart-item" data-index="${i}">
+        <div class="cart-item-media">${item.image ? `<img src="${item.image}" alt="">` : ''}</div>
+        <div class="cart-item-info">
+          <h4>${item.name}</h4>
+          <span class="cart-item-price">${formatNaira(item.price)} each</span>
+        </div>
+        <div class="qty-stepper">
+          <button type="button" class="qty-btn" data-action="dec" aria-label="Decrease quantity">&minus;</button>
+          <span class="qty-value">${item.qty}</span>
+          <button type="button" class="qty-btn" data-action="inc" aria-label="Increase quantity">&plus;</button>
+        </div>
+        <span class="cart-item-total">${formatNaira(item.price * item.qty)}</span>
+        <button type="button" class="cart-item-remove" data-action="remove" aria-label="Remove item">&times;</button>
+      </div>
+    `).join('');
+
+    const subtotal = cartSubtotal();
+    subtotalEl.textContent = formatNaira(subtotal);
+    totalEl.textContent = formatNaira(subtotal);
+  }
+
+  cartItemsEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const row = btn.closest('.cart-item');
+    const index = parseInt(row.dataset.index, 10);
+    const cart = getCart();
+    if (!cart[index]) return;
+
+    const action = btn.dataset.action;
+    if (action === 'inc') cart[index].qty += 1;
+    if (action === 'dec') cart[index].qty -= 1;
+    if (action === 'remove') cart[index].qty = 0;
+    if (cart[index].qty <= 0) cart.splice(index, 1);
+
+    saveCart(cart);
+    renderCheckout();
+  });
+
+  function validate(requireEmail) {
+    const d = getDetails();
+    if (!d.name || !d.phone || !d.address) {
+      noteEl.textContent = 'Please fill in your name, phone and delivery address.';
+      noteEl.classList.add('error');
+      return null;
+    }
+    if (requireEmail && !d.email) {
+      noteEl.textContent = 'Card payment needs a valid email for your receipt.';
+      noteEl.classList.add('error');
+      return null;
+    }
+    noteEl.classList.remove('error');
+    return d;
+  }
+
+  function itemLines() {
+    return getCart().map(
+      (item) => `- ${item.name} x${item.qty} = ${formatNaira(item.price * item.qty)}`
+    );
+  }
+
+  function orderSummaryText(d, ref) {
+    return [
+      'Hi NELVA NATURAL, I would like to place an order:',
+      '',
+      `Order ref: ${ref}`,
+      '',
+      ...itemLines(),
+      '',
+      `Total: ${formatNaira(cartSubtotal())}`,
+      '',
+      `Name: ${d.name}`,
+      `Phone: ${d.phone}`,
+      d.email ? `Email: ${d.email}` : null,
+      `Address: ${d.address}`,
+      d.notes ? `Notes: ${d.notes}` : null,
+    ].filter(Boolean).join('\n');
+  }
+
+  // Emails the order: always notifies the business (Formspree); emails the
+  // customer their confirmation when they gave an address and EmailJS is set up.
+  function emailOrder(d, ref, method) {
+    const data = {
+      order_reference: ref,
+      payment_method: method,
+      customer_name: d.name,
+      customer_phone: d.phone,
+      customer_email: d.email || '(not provided)',
+      delivery_address: d.address,
+      order_notes: d.notes || '(none)',
+      items: itemLines().join('\n'),
+      total: formatNaira(cartSubtotal()),
+    };
+
+    // 1. Business notification — no setup needed.
+    fetch(ORDER_EMAIL_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        _subject: `New order ${ref} (${method}) — NELVA NATURAL`,
+        email: d.email || '',
+        _replyto: d.email || '',
+        ...data,
+      }),
+    }).catch(() => { /* non-blocking */ });
+
+    // 2. Customer confirmation — EmailJS free tier, shaped for the
+    //    "Order Confirmation" template (order_id, orders list, cost.total).
+    if (d.email && emailjsReady) {
+      const origin = location.origin && location.origin.indexOf('http') === 0 ? location.origin : '';
+      emailjs
+        .send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+          ...data,
+          to_email: d.email,
+          email: d.email,
+          order_id: ref,
+          orders: getCart().map((i) => ({
+            name: i.name,
+            units: i.qty,
+            price: (i.price * i.qty).toLocaleString('en-NG'),
+            image_url: i.image
+              ? (origin ? origin + '/' + i.image.replace(/^\//, '') : i.image)
+              : '',
+          })),
+          cost: {
+            shipping: '0',
+            tax: '0',
+            total: cartSubtotal().toLocaleString('en-NG'),
+          },
+        })
+        .catch(() => { /* non-blocking: on-screen + WhatsApp confirmation still stands */ });
+    }
+  }
+
+  function completeOrder(title, message, ref) {
+    localStorage.removeItem(CART_KEY);
+    updateCartCount();
+    noteEl.classList.remove('error');
+    noteEl.textContent = '';
+    checkoutGrid.hidden = true;
+    cartEmpty.hidden = true;
+    document.getElementById('orderConfirmTitle').textContent = title;
+    document.getElementById('orderConfirmMessage').textContent = message;
+    document.getElementById('orderConfirmRef').textContent = ref;
+    orderConfirm.hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  whatsappBtn.addEventListener('click', () => {
+    const d = validate(false);
+    if (!d) return;
+    const ref = generateOrderRef();
+    // Open WhatsApp synchronously so the browser does not block the popup.
+    window.open(
+      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(orderSummaryText(d, ref))}`,
+      '_blank'
+    );
+    emailOrder(d, ref, 'WhatsApp');
+    completeOrder(
+      'Order sent',
+      d.email
+        ? 'We opened WhatsApp with your order and emailed a copy to you and our team. Send the WhatsApp message to confirm.'
+        : 'We opened WhatsApp with your order. Send the message to confirm and our team will take it from there.',
+      ref
+    );
+  });
+
+  paystackBtn.addEventListener('click', () => {
+    const d = validate(true);
+    if (!d) return;
+
+    if (typeof PaystackPop === 'undefined') {
+      noteEl.textContent = 'Payment library failed to load. Please try WhatsApp or refresh.';
+      noteEl.classList.add('error');
+      return;
+    }
+    if (PAYSTACK_PUBLIC_KEY.includes('REPLACE')) {
+      noteEl.textContent = 'Card payment is not configured yet. Please order via WhatsApp for now.';
+      noteEl.classList.add('error');
+      return;
+    }
+
+    const ref = generateOrderRef();
+    const handler = PaystackPop.setup({
+      key: PAYSTACK_PUBLIC_KEY,
+      email: d.email,
+      amount: cartSubtotal() * 100, // kobo
+      currency: 'NGN',
+      ref: ref,
+      metadata: {
+        custom_fields: [
+          { display_name: 'Name', variable_name: 'name', value: d.name },
+          { display_name: 'Phone', variable_name: 'phone', value: d.phone },
+          { display_name: 'Address', variable_name: 'address', value: d.address },
+          { display_name: 'Notes', variable_name: 'notes', value: d.notes || '-' },
+          { display_name: 'Items', variable_name: 'items', value: getCart().map((i) => `${i.name} x${i.qty}`).join(', ') },
+        ],
+      },
+      callback: function (response) {
+        const finalRef = response.reference || ref;
+        emailOrder(d, finalRef, 'Card (Paystack)');
+        completeOrder(
+          'Payment received',
+          'Thank you! We emailed your receipt and order details to you and our team. We will confirm delivery shortly.',
+          finalRef
+        );
+      },
+      onClose: function () {
+        noteEl.textContent = 'Payment window closed before completing.';
+      },
+    });
+    handler.openIframe();
+  });
+
+  renderCheckout();
 }
 
 // Newsletter form (placeholder submit)
