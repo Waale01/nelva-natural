@@ -10,21 +10,38 @@ window.addEventListener('scroll', () => {
   header.classList.toggle('scrolled', window.scrollY > 10);
 });
 
-// Mobile nav toggle
+// Mobile nav toggle — hamburger animates into an X while the menu is open
 const navToggle = document.getElementById('navToggle');
 const mainNav = document.getElementById('mainNav');
 if (navToggle) {
+  navToggle.setAttribute('aria-expanded', 'false');
   navToggle.addEventListener('click', () => {
-    mainNav.style.display = mainNav.style.display === 'flex' ? 'none' : 'flex';
-    mainNav.style.flexDirection = 'column';
-    mainNav.style.position = 'absolute';
-    mainNav.style.top = '100%';
-    mainNav.style.left = '0';
-    mainNav.style.right = '0';
-    mainNav.style.background = '#fff';
-    mainNav.style.padding = '20px 24px';
-    mainNav.style.gap = '18px';
-    mainNav.style.boxShadow = '0 10px 20px rgba(0,0,0,0.08)';
+    const isOpen = mainNav.style.display === 'flex';
+    if (isOpen) {
+      mainNav.style.display = 'none';
+    } else {
+      mainNav.style.display = 'flex';
+      mainNav.style.flexDirection = 'column';
+      mainNav.style.position = 'absolute';
+      mainNav.style.top = '100%';
+      mainNav.style.left = '0';
+      mainNav.style.right = '0';
+      mainNav.style.background = '#fff';
+      mainNav.style.padding = '20px 24px';
+      mainNav.style.gap = '18px';
+      mainNav.style.boxShadow = '0 10px 20px rgba(0,0,0,0.08)';
+    }
+    navToggle.classList.toggle('active', !isOpen);
+    navToggle.setAttribute('aria-expanded', String(!isOpen));
+  });
+
+  // Closing a link also resets the icon back to the hamburger
+  mainNav.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => {
+      mainNav.style.display = 'none';
+      navToggle.classList.remove('active');
+      navToggle.setAttribute('aria-expanded', 'false');
+    });
   });
 }
 

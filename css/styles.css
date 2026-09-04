@@ -195,15 +195,26 @@ h1, h2, h3, h4 {
 
 .nav-toggle {
   display: none;
-  flex-direction: column;
-  gap: 5px;
+  position: relative;
   width: 26px;
+  height: 20px;
 }
 .nav-toggle span {
+  position: absolute;
+  left: 0;
+  width: 100%;
   height: 2px;
+  border-radius: 1px;
   background: var(--color-forest-dark);
-  display: block;
+  transition: top var(--transition), transform var(--transition), opacity var(--transition);
 }
+.nav-toggle span:nth-child(1) { top: 0; }
+.nav-toggle span:nth-child(2) { top: 9px; }
+.nav-toggle span:nth-child(3) { top: 18px; }
+
+.nav-toggle.active span:nth-child(1) { top: 9px; transform: rotate(45deg); }
+.nav-toggle.active span:nth-child(2) { opacity: 0; }
+.nav-toggle.active span:nth-child(3) { top: 9px; transform: rotate(-45deg); }
 
 /* ============================================
    Hero
