@@ -174,7 +174,15 @@ if (checkoutGrid) {
   });
 
   function renderCheckout() {
-    const cart = getCart();
+    let cart = getCart();
+
+    // Self-heal: drop any entry with no valid price/quantity instead of
+    // letting it render a ₦0 line that the order buttons would still send.
+    const clean = cart.filter((item) => Number(item.price) > 0 && Number(item.qty) > 0);
+    if (clean.length !== cart.length) {
+      saveCart(clean);
+      cart = clean;
+    }
 
     if (cart.length === 0) {
       checkoutGrid.hidden = true;
@@ -206,6 +214,11 @@ if (checkoutGrid) {
     const subtotal = cartSubtotal();
     subtotalEl.textContent = formatNaira(subtotal);
     totalEl.textContent = formatNaira(subtotal);
+
+    // Belt and suspenders: never leave the order buttons clickable on a ₦0 total.
+    const valid = subtotal > 0;
+    whatsappBtn.disabled = !valid;
+    paystackBtn.disabled = !valid;
   }
 
   cartItemsEl.addEventListener('click', (e) => {
@@ -350,8 +363,8 @@ if (checkoutGrid) {
   // Step 1: open WhatsApp with the order pre-filled. Nothing is emailed and the
   // cart is kept — the order is only real once the customer confirms they sent it.
   whatsappBtn.addEventListener('click', () => {
-    if (getCart().length === 0) {
-      renderCheckout(); // cart was cleared elsewhere (another tab, or coming back via Back button) — sync the view
+    if (cartSubtotal() <= 0) {
+      renderCheckout(); // cart is empty/invalid — synced elsewhere, via Back button, or self-healed just now
       return;
     }
     const d = validate(false);

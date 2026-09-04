@@ -99,6 +99,12 @@ h1, h2, h3, h4 {
 }
 .btn-light:hover { background: var(--color-cream-dark); }
 
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* ============================================
    Announcement bar
    ============================================ */
