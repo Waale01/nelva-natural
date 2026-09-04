@@ -126,6 +126,10 @@ if (checkoutGrid) {
   const noteEl = document.getElementById('checkoutNote');
   const whatsappBtn = document.getElementById('whatsappBtn');
   const paystackBtn = document.getElementById('paystackBtn');
+  const waConfirm = document.getElementById('waConfirm');
+  const waConfirmBtn = document.getElementById('waConfirmBtn');
+  const waBackBtn = document.getElementById('waBackBtn');
+  let pendingWa = null; // { d, ref } — a WhatsApp order opened but not yet confirmed sent
   const FIELDS = ['name', 'phone', 'email', 'address', 'notes'];
   const emailjsReady = typeof emailjs !== 'undefined' && !EMAILJS_PUBLIC_KEY.includes('REPLACE');
   if (emailjsReady) emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
@@ -163,6 +167,7 @@ if (checkoutGrid) {
     checkoutGrid.hidden = false;
     cartEmpty.hidden = true;
     orderConfirm.hidden = true;
+    resetWaConfirm(); // any change to the cart invalidates a half-finished WhatsApp order
 
     cartItemsEl.innerHTML = cart.map((item, i) => `
       <div class="cart-item" data-index="${i}">
@@ -264,7 +269,10 @@ if (checkoutGrid) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({
-        _subject: `New order ${ref} (${method}) — NELVA NATURAL`,
+        _subject:
+          method === 'WhatsApp'
+            ? `New order ${ref} — WhatsApp (confirm payment in chat)`
+            : `New order ${ref} — Paid via Paystack`,
         email: d.email || '',
         _replyto: d.email || '',
         ...data,
@@ -304,6 +312,7 @@ if (checkoutGrid) {
     updateCartCount();
     noteEl.classList.remove('error');
     noteEl.textContent = '';
+    pendingWa = null;
     checkoutGrid.hidden = true;
     cartEmpty.hidden = true;
     document.getElementById('orderConfirmTitle').textContent = title;
@@ -313,24 +322,46 @@ if (checkoutGrid) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // Return the summary to its default state (buttons shown, WhatsApp step hidden).
+  function resetWaConfirm() {
+    pendingWa = null;
+    if (waConfirm) waConfirm.hidden = true;
+    whatsappBtn.hidden = false;
+    paystackBtn.hidden = false;
+  }
+
+  // Step 1: open WhatsApp with the order pre-filled. Nothing is emailed and the
+  // cart is kept — the order is only real once the customer confirms they sent it.
   whatsappBtn.addEventListener('click', () => {
     const d = validate(false);
     if (!d) return;
     const ref = generateOrderRef();
-    // Open WhatsApp synchronously so the browser does not block the popup.
     window.open(
       `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(orderSummaryText(d, ref))}`,
       '_blank'
     );
-    emailOrder(d, ref, 'WhatsApp');
+    pendingWa = { d: d, ref: ref };
+    whatsappBtn.hidden = true;
+    paystackBtn.hidden = true;
+    noteEl.textContent = '';
+    noteEl.classList.remove('error');
+    waConfirm.hidden = false;
+  });
+
+  // Step 2: the customer confirms they actually sent the WhatsApp message.
+  waConfirmBtn.addEventListener('click', () => {
+    if (!pendingWa) return;
+    emailOrder(pendingWa.d, pendingWa.ref, 'WhatsApp');
     completeOrder(
-      'Order sent',
-      d.email
-        ? 'We opened WhatsApp with your order and emailed a copy to you and our team. Send the WhatsApp message to confirm.'
-        : 'We opened WhatsApp with your order. Send the message to confirm and our team will take it from there.',
-      ref
+      'Order confirmed',
+      pendingWa.d.email
+        ? 'Thanks! We emailed your order confirmation to you and our team, and we will follow up on WhatsApp shortly.'
+        : 'Thanks! We sent your order to our team and will follow up on WhatsApp shortly.',
+      pendingWa.ref
     );
   });
+
+  if (waBackBtn) waBackBtn.addEventListener('click', resetWaConfirm);
 
   paystackBtn.addEventListener('click', () => {
     const d = validate(true);

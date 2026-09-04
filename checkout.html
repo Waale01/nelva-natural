@@ -125,6 +125,13 @@
         <button type="button" class="btn btn-outline checkout-btn" id="paystackBtn">
           Pay with Card (Paystack)
         </button>
+
+        <div class="wa-confirm" id="waConfirm" hidden>
+          <p class="wa-confirm-text">We opened WhatsApp with your order. Once you have sent that message, tap below so we can log your order and email your confirmation.</p>
+          <button type="button" class="btn btn-primary checkout-btn" id="waConfirmBtn">I have sent my WhatsApp order</button>
+          <button type="button" class="wa-back" id="waBackBtn">Not yet, go back</button>
+        </div>
+
         <p class="checkout-note" id="checkoutNote">WhatsApp opens a chat with your order pre-filled. Card payments are processed securely by Paystack.</p>
       </aside>
     </div>

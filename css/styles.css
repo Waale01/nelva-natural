@@ -22,6 +22,8 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+[hidden] { display: none !important; }
+
 html { scroll-behavior: smooth; }
 
 body {
@@ -698,6 +700,30 @@ h1, h2, h3, h4 {
   line-height: 1.5;
 }
 .checkout-note.error { color: var(--color-terracotta-dark); }
+
+.wa-confirm {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--color-white);
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: var(--radius);
+}
+.wa-confirm-text {
+  font-size: 0.82rem;
+  color: #524d40;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+.wa-confirm .checkout-btn { margin-top: 0; }
+.wa-back {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: #6b6656;
+  text-decoration: underline;
+}
+.wa-back:hover { color: var(--color-dark); }
 
 .order-confirm {
   text-align: center;
