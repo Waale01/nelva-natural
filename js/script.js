@@ -333,6 +333,10 @@ if (checkoutGrid) {
   // Step 1: open WhatsApp with the order pre-filled. Nothing is emailed and the
   // cart is kept — the order is only real once the customer confirms they sent it.
   whatsappBtn.addEventListener('click', () => {
+    if (getCart().length === 0) {
+      renderCheckout(); // cart was cleared elsewhere (another tab, or coming back via Back button) — sync the view
+      return;
+    }
     const d = validate(false);
     if (!d) return;
     const ref = generateOrderRef();
@@ -364,6 +368,10 @@ if (checkoutGrid) {
   if (waBackBtn) waBackBtn.addEventListener('click', resetWaConfirm);
 
   paystackBtn.addEventListener('click', () => {
+    if (getCart().length === 0) {
+      renderCheckout();
+      return;
+    }
     const d = validate(true);
     if (!d) return;
 
@@ -408,6 +416,16 @@ if (checkoutGrid) {
       },
     });
     handler.openIframe();
+  });
+
+  // Re-sync if the page is restored from back-forward cache (Back button after
+  // an order) or the cart changed in another tab — both can leave this page's
+  // DOM showing stale items while localStorage has already moved on.
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) renderCheckout();
+  });
+  window.addEventListener('storage', (e) => {
+    if (e.key === CART_KEY) renderCheckout();
   });
 
   renderCheckout();
