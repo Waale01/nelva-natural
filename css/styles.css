@@ -516,6 +516,11 @@ h1, h2, h3, h4 {
 .social-row a:hover { background: rgba(255,255,255,0.12); }
 .social-row svg { width: 16px; height: 16px; }
 
+/* Real brand colours for the social icons */
+.social-row a[aria-label="WhatsApp"] svg { fill: #25D366; }
+.social-row a[aria-label="TikTok"] svg { fill: #010101; }
+.site-footer .social-row a[aria-label="TikTok"] svg { fill: #ffffff; }
+
 .footer-col h4 {
   color: #fff;
   font-size: 0.85rem;
