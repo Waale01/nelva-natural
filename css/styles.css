@@ -199,6 +199,37 @@ h1, h2, h3, h4 {
   justify-content: center;
 }
 
+/* Header search */
+.search-bar {
+  background: var(--color-white);
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+.search-bar form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 0;
+}
+.search-bar svg { width: 20px; height: 20px; color: #6b6656; flex-shrink: 0; }
+.search-bar input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--color-dark);
+  padding: 4px 0;
+}
+.search-bar input:focus { outline: none; }
+.search-close {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #6b6656;
+  padding: 2px 6px;
+}
+.search-close:hover { color: var(--color-dark); }
+.search-empty { text-align: center; color: #6b6656; margin-top: 24px; }
+
 .nav-toggle {
   display: none;
   position: relative;

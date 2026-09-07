@@ -47,6 +47,79 @@ if (navToggle) {
   });
 }
 
+// ============================================
+// Header search — filters the product grid; on pages without one,
+// it forwards to the homepage shop with the query.
+// ============================================
+const searchBar = document.getElementById('searchBar');
+if (searchBar) {
+  const searchInput = document.getElementById('searchInput');
+  const searchForm = document.getElementById('searchForm');
+  const searchClose = document.getElementById('searchClose');
+  const productGrid = document.getElementById('productGrid');
+  const searchEmpty = document.getElementById('searchEmpty');
+  const searchButtons = document.querySelectorAll('.icon-btn[aria-label="Search"]');
+
+  function filterProducts(term) {
+    if (!productGrid) return;
+    const q = term.trim().toLowerCase();
+    let visible = 0;
+    productGrid.querySelectorAll('.product-card').forEach((card) => {
+      const name = (card.dataset.name || '').toLowerCase();
+      const catEl = card.querySelector('.cat');
+      const cat = catEl ? catEl.textContent.toLowerCase() : '';
+      const match = !q || name.indexOf(q) !== -1 || cat.indexOf(q) !== -1;
+      card.hidden = !match;
+      if (match) visible += 1;
+    });
+    if (searchEmpty) searchEmpty.hidden = !(q && visible === 0);
+  }
+
+  function openSearch() {
+    searchBar.hidden = false;
+    searchInput.focus();
+  }
+  function closeSearch() {
+    searchBar.hidden = true;
+    searchInput.value = '';
+    filterProducts('');
+  }
+
+  searchButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (searchBar.hidden) openSearch();
+      else closeSearch();
+    });
+  });
+  if (searchClose) searchClose.addEventListener('click', closeSearch);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !searchBar.hidden) closeSearch();
+  });
+
+  searchInput.addEventListener('input', () => filterProducts(searchInput.value));
+  searchForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const q = searchInput.value.trim();
+    if (productGrid) {
+      filterProducts(q);
+      const shop = document.getElementById('shop');
+      if (shop) shop.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      window.location.href = 'index.html?q=' + encodeURIComponent(q) + '#shop';
+    }
+  });
+
+  // Apply ?q= passed from another page
+  if (productGrid) {
+    const q = new URLSearchParams(location.search).get('q');
+    if (q) {
+      searchBar.hidden = false;
+      searchInput.value = q;
+      filterProducts(q);
+    }
+  }
+}
+
 // Toast helper
 const toast = document.getElementById('toast');
 function showToast(message) {
