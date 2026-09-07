@@ -562,6 +562,12 @@ h1, h2, h3, h4 {
 .info-item svg { width: 22px; height: 22px; color: var(--color-terracotta); flex-shrink: 0; margin-top: 3px; }
 .info-item h5 { font-size: 0.92rem; margin-bottom: 4px; color: var(--color-forest-dark); }
 .info-item p { color: #6b6656; font-size: 0.9rem; margin-bottom: 0; }
+.info-item .social-row { margin-top: 8px; gap: 12px; }
+.info-item .social-row a {
+  border-color: rgba(0,0,0,0.15);
+  color: var(--color-forest-dark);
+}
+.info-item .social-row a:hover { background: var(--color-cream); }
 
 .contact-form { display: flex; flex-direction: column; gap: 20px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
