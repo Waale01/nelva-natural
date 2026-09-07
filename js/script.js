@@ -35,9 +35,11 @@ if (navToggle) {
     navToggle.setAttribute('aria-expanded', String(!isOpen));
   });
 
-  // Closing a link also resets the icon back to the hamburger
+  // Tapping a link closes the mobile menu — but only when it IS the mobile
+  // menu (hamburger visible). On desktop the nav must stay put.
   mainNav.querySelectorAll('a').forEach((link) => {
     link.addEventListener('click', () => {
+      if (getComputedStyle(navToggle).display === 'none') return;
       mainNav.style.display = 'none';
       navToggle.classList.remove('active');
       navToggle.setAttribute('aria-expanded', 'false');
