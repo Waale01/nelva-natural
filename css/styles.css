@@ -631,6 +631,15 @@ h1, h2, h3, h4 {
   text-decoration: underline;
 }
 .prose a:hover { color: var(--color-terracotta-dark); }
+/* Info pages use the body font (Poppins) for headings, not the Playfair serif */
+.info-page .page-hero h1,
+.info-page .prose h2,
+.info-page .prose h3 {
+  font-family: var(--font-body);
+  letter-spacing: -0.01em;
+}
+.info-page .prose h2 { font-weight: 700; }
+
 .faq-list { display: flex; flex-direction: column; gap: 10px; }
 .faq-item {
   border: 1px solid rgba(0,0,0,0.1);
