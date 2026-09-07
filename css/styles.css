@@ -537,6 +537,7 @@ h1, h2, h3, h4 {
   flex-wrap: wrap;
   gap: 12px;
 }
+.footer-bottom a:hover { color: rgba(248,245,238,0.9); text-decoration: underline; }
 
 /* ============================================
    Contact page
@@ -588,6 +589,54 @@ h1, h2, h3, h4 {
 .form-status { font-size: 0.88rem; margin-top: 4px; min-height: 20px; }
 .form-status.success { color: var(--color-forest); }
 .form-status.error { color: var(--color-terracotta-dark); }
+
+/* ============================================
+   Info / legal pages (policies, help)
+   ============================================ */
+.prose {
+  max-width: 760px;
+  margin: 0 auto;
+  color: #454034;
+}
+.prose > section {
+  scroll-margin-top: 100px;
+  padding-bottom: 48px;
+  margin-bottom: 48px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+.prose > section:last-child { border-bottom: none; margin-bottom: 0; }
+.prose h2 {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+.prose .updated {
+  font-size: 0.8rem;
+  color: #948d7a;
+  margin-bottom: 20px;
+}
+.prose h3 {
+  font-size: 1.05rem;
+  color: var(--color-forest-dark);
+  margin: 28px 0 10px;
+}
+.prose p { margin-bottom: 14px; }
+.prose ul {
+  list-style: disc;
+  padding-left: 22px;
+  margin-bottom: 14px;
+}
+.prose li { margin-bottom: 8px; }
+.prose a {
+  color: var(--color-terracotta);
+  text-decoration: underline;
+}
+.prose a:hover { color: var(--color-terracotta-dark); }
+.prose .faq-q {
+  font-weight: 600;
+  color: var(--color-forest-dark);
+  margin-bottom: 4px;
+}
+.prose .faq-q + p { margin-bottom: 22px; }
 
 /* ============================================
    Checkout page
