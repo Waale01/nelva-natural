@@ -631,12 +631,43 @@ h1, h2, h3, h4 {
   text-decoration: underline;
 }
 .prose a:hover { color: var(--color-terracotta-dark); }
-.prose .faq-q {
-  font-weight: 600;
-  color: var(--color-forest-dark);
-  margin-bottom: 4px;
+.faq-list { display: flex; flex-direction: column; gap: 10px; }
+.faq-item {
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: var(--radius);
+  background: var(--color-white);
+  overflow: hidden;
 }
-.prose .faq-q + p { margin-bottom: 22px; }
+.faq-item summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-forest-dark);
+  transition: background var(--transition);
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary:hover,
+.faq-item[open] summary { background: var(--color-cream); }
+.faq-item summary svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--color-terracotta);
+  transition: transform var(--transition);
+}
+.faq-item[open] summary svg { transform: rotate(90deg); }
+.faq-answer {
+  padding: 4px 20px 20px;
+  color: #6b6656;
+  font-size: 0.92rem;
+}
+.faq-answer p { margin: 0; }
 
 /* ============================================
    Checkout page
