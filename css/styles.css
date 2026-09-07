@@ -640,43 +640,43 @@ h1, h2, h3, h4 {
 }
 .info-page .prose h2 { font-weight: 700; }
 
-.faq-list { display: flex; flex-direction: column; gap: 10px; }
-.faq-item {
+.accordion { display: flex; flex-direction: column; gap: 10px; }
+.accordion-item {
   border: 1px solid rgba(0,0,0,0.1);
   border-radius: var(--radius);
   background: var(--color-white);
   overflow: hidden;
 }
-.faq-item summary {
+.accordion-item summary {
   list-style: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 20px;
+  padding: 16px 20px;
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--color-forest-dark);
   transition: background var(--transition);
 }
-.faq-item summary::-webkit-details-marker { display: none; }
-.faq-item summary:hover,
-.faq-item[open] summary { background: var(--color-cream); }
-.faq-item summary svg {
+.accordion-item summary::-webkit-details-marker { display: none; }
+.accordion-item summary:hover,
+.accordion-item[open] summary { background: var(--color-cream); }
+.accordion-item summary svg {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
   color: var(--color-terracotta);
   transition: transform var(--transition);
 }
-.faq-item[open] summary svg { transform: rotate(90deg); }
-.faq-answer {
-  padding: 4px 20px 20px;
+.accordion-item[open] summary svg { transform: rotate(90deg); }
+.accordion-body {
+  padding: 8px 20px 20px;
   color: #6b6656;
   font-size: 0.92rem;
 }
-.faq-answer p { margin: 0; }
+.accordion-body > :last-child { margin-bottom: 0; }
 
 /* ============================================
    Checkout page
