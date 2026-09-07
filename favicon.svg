@@ -2,6 +2,5 @@
   <rect width="64" height="64" rx="13" fill="#1f3d2b"/>
   <text x="32" y="35" text-anchor="middle" dominant-baseline="central"
         font-family="Georgia, 'Times New Roman', 'Playfair Display', serif"
-        font-size="46" font-weight="700" fill="#f8f5ee"
-        transform="translate(64 0) scale(-1 1)">N</text>
+        font-size="46" font-weight="700" fill="#f8f5ee">N</text>
 </svg>
