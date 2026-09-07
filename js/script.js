@@ -463,11 +463,29 @@ if (checkoutGrid) {
   renderCheckout();
 }
 
-// Newsletter form (placeholder submit)
+// Newsletter form — subscribes to the Brevo "NELVA Circle" list
+const NEWSLETTER_ENDPOINT = 'https://2cbd7937.sibforms.com/serve/MUIFABs4sDSvLxYcI2hqrOUXyGERn3aBtb1Scu1pXLN2hijERlT_2QahfJtc8YQ1IRa9FXTceXBudWLUvSvzs2v9zgUnaUZiIm5YL9myWgHnHn6Hws1ZjLIZ0WwDhnn-uyzp0Vlb7Lh9jfGw_vqPNZrx87uYocbCuEHGNL62iQU6TimqMhGe8aUWIHJrEp1jfT1mJFHSbik9GkIhMA==';
 const newsletterForm = document.getElementById('newsletterForm');
 if (newsletterForm) {
-  newsletterForm.addEventListener('submit', (e) => {
+  newsletterForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const input = newsletterForm.querySelector('input[type="email"]');
+    const email = input ? input.value.trim() : '';
+    if (!email) return;
+
+    const body = new URLSearchParams({
+      EMAIL: email,
+      email_address_check: '', // Brevo honeypot — must stay empty
+      locale: 'en',
+      html_type: 'simple',
+    });
+    try {
+      // no-cors: Brevo's endpoint doesn't return CORS headers, so the response
+      // is opaque. The subscription still registers; we just can't read a result.
+      await fetch(NEWSLETTER_ENDPOINT, { method: 'POST', mode: 'no-cors', body });
+    } catch (err) {
+      /* network error only — treat as sent */
+    }
     showToast('Thanks for subscribing!');
     newsletterForm.reset();
   });
