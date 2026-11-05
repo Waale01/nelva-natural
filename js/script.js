@@ -60,19 +60,51 @@ if (searchBar) {
   const searchEmpty = document.getElementById('searchEmpty');
   const searchButtons = document.querySelectorAll('.icon-btn[aria-label="Search"]');
 
+  // Filler words that shouldn't count toward a match
+  const STOPWORDS = new Set(['a', 'an', 'and', 'the', 'for', 'to', 'of', 'in', 'on', 'with', 'my', 'me', 'i', 'is', 'it', 'or', 'best', 'product', 'products', 'nelva']);
+
+  // Split text into lowercase words, also breaking on hyphens ("sulfate-free" -> sulfate, free)
+  const words = (text) => text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+
+  // Loosen a search word so "curls"/"curly" ~ "curl", "moisturizing" ~ "moisturiz",
+  // "moisturiser" ~ "moisturizer". Stems must stay 3+ letters to avoid "need" -> "ne".
+  function variants(word) {
+    const out = new Set([word, word.replace(/is(e|er|ing|ed)$/, 'iz$1')]);
+    [...out].forEach((w) => {
+      const m = w.match(/^(.*?)(ing|ies|ed|es|s|y)$/);
+      // "oily" -> "oil" is fine; "string" -> "str" is not
+      if (m && m[1].length >= (m[2] === 'y' ? 3 : 4)) out.add(m[1]);
+    });
+    return [...out];
+  }
+
   function filterProducts(term) {
     if (!productGrid) return;
-    const q = term.trim().toLowerCase();
+    const terms = words(term).filter((w) => !STOPWORDS.has(w));
+    const cards = [...productGrid.querySelectorAll('.product-card')];
+
+    // Score each card: a search word found in the product's name/category counts 2,
+    // found in its keywords/description counts 1 (matched as a word or word prefix)
+    const textOf = (card, sel) => [...card.querySelectorAll(sel)].map((el) => el.textContent).join(' ');
+    // Short words ("co", "4c") must match whole words, or "co" would hit "conditioner"
+    const hit = (t, list) => variants(t).some((v) =>
+      list.some((cw) => (v.length <= 2 ? cw === v : cw.startsWith(v))));
+    const scores = cards.map((card) => {
+      const nameWords = words((card.dataset.name || '') + ' ' + textOf(card, '.cat, h4'));
+      const otherWords = words((card.dataset.keywords || '') + ' ' + textOf(card, '.desc'));
+      return terms.reduce((sum, t) => sum + (hit(t, nameWords) ? 2 : hit(t, otherWords) ? 1 : 0), 0);
+    });
+
+    // Show the best-matching cards: "itchy scalp" shows the oil, not everything with "scalp"
+    const best = Math.max(0, ...scores);
     let visible = 0;
-    productGrid.querySelectorAll('.product-card').forEach((card) => {
-      const name = (card.dataset.name || '').toLowerCase();
-      const catEl = card.querySelector('.cat');
-      const cat = catEl ? catEl.textContent.toLowerCase() : '';
-      const match = !q || name.indexOf(q) !== -1 || cat.indexOf(q) !== -1;
+    cards.forEach((card, i) => {
+      const match = terms.length === 0 || (best > 0 && scores[i] === best);
       card.hidden = !match;
       if (match) visible += 1;
     });
-    if (searchEmpty) searchEmpty.hidden = !(q && visible === 0);
+
+    if (searchEmpty) searchEmpty.hidden = !(term.trim() && visible === 0);
   }
 
   function openSearch() {
