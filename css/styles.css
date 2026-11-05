@@ -12,6 +12,13 @@
   --color-dark: #24211d;
   --color-white: #ffffff;
 
+  /* Brand colours — packaging 2026 (used as accents only, see end of file) */
+  --brand-cocoa: #563a2b;      /* label background, main brand brown */
+  --brand-label-gold: #d6b57e; /* gold on dark backgrounds */
+  --brand-deep-gold: #b08d57;  /* gold on light backgrounds */
+  --brand-ivory: #f4eadb;      /* light cream */
+  --brand-espresso: #3a271c;   /* darkest brown, text */
+
   --font-heading: 'Playfair Display', Georgia, 'Times New Roman', serif;
   --font-body: 'Poppins', -apple-system, Segoe UI, Arial, sans-serif;
 
@@ -960,3 +967,35 @@ h1, h2, h3, h4 {
   .cart-item-media { width: 56px; height: 56px; }
   .cart-item-total { min-width: 0; align-self: center; }
 }
+
+/* ============================================
+   Brand colour accents — packaging 2026
+   Small accent overrides only. Delete this block to undo.
+   ============================================ */
+
+/* Nav hover: cocoa text with a gold underline */
+.main-nav a { transition: color var(--transition); }
+.main-nav a:hover { color: var(--brand-cocoa); }
+.main-nav a::after { background: var(--brand-deep-gold); }
+
+/* Card hover: a soft cocoa glow instead of a grey shadow */
+.product-card,
+.testimonial-card {
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+.product-card:hover,
+.testimonial-card:hover {
+  box-shadow: 0 22px 48px rgba(86, 58, 43, 0.45), 0 8px 16px rgba(86, 58, 43, 0.18);
+  transform: translateY(-4px);
+}
+
+/* Prices in a warm espresso instead of near-black */
+.product-info .price { color: var(--brand-espresso); }
+
+/* Gold on dark green: use the lighter label gold for better legibility */
+.hero-copy .eyebrow,
+.page-hero .eyebrow { color: var(--brand-label-gold); }
+
+/* Footer link hover: white -> label gold */
+.footer-col a:hover,
+.footer-bottom a:hover { color: var(--brand-label-gold); }
