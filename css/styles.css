@@ -969,6 +969,87 @@ h1, h2, h3, h4 {
 }
 
 /* ============================================
+   Product pages
+   ============================================ */
+.product-info h4 a { transition: color var(--transition); }
+.product-info h4 a:hover { color: var(--color-terracotta); }
+.product-link { display: block; width: 100%; height: 100%; }
+
+.breadcrumb {
+  padding: 22px 0 0;
+  font-size: 0.8rem;
+  color: #948d7a;
+}
+.breadcrumb a { transition: color var(--transition); }
+.breadcrumb a:hover { color: var(--color-forest-dark); }
+.breadcrumb span[aria-hidden] { margin: 0 8px; }
+.breadcrumb [aria-current] { color: var(--color-dark); }
+
+.pd-section { padding: 32px 0 80px; }
+.product-detail {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 64px;
+  align-items: start;
+}
+.pd-gallery {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 6px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #eee6d6, #d9cdae);
+}
+.pd-gallery img { width: 100%; height: 100%; object-fit: cover; }
+
+.pd-info h1 { font-size: clamp(2rem, 3.6vw, 2.7rem); margin-bottom: 16px; }
+.pd-price-row { display: flex; align-items: baseline; gap: 14px; margin-bottom: 20px; }
+.pd-price { font-size: 1.5rem; font-weight: 600; color: var(--color-dark); }
+.pd-size { font-size: 0.85rem; color: #948d7a; }
+.pd-lead { color: #524d40; margin-bottom: 28px; }
+
+.pd-buy { display: flex; gap: 14px; margin-bottom: 28px; }
+.pd-buy .qty-btn { width: 42px; height: 50px; }
+.pd-buy .qty-value { min-width: 40px; }
+.pd-add { flex: 1; }
+
+.pd-free {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px 18px;
+  padding: 22px 0;
+  margin-bottom: 28px;
+  border-top: 1px solid rgba(0,0,0,0.08);
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+.pd-free li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--color-forest-dark);
+}
+.pd-free svg { width: 18px; height: 18px; color: var(--color-terracotta); flex-shrink: 0; }
+
+.pd-info .accordion-body a { color: var(--color-terracotta); text-decoration: underline; }
+.pd-info .accordion-body p + p { margin-top: 10px; }
+
+.pd-review-section { padding-top: 0; }
+.pd-review { max-width: 720px; margin: 0 auto; text-align: center; }
+
+.pd-related { grid-template-columns: repeat(3, 1fr); }
+
+@media (max-width: 1024px) {
+  .product-detail { grid-template-columns: 1fr; gap: 36px; }
+  .pd-gallery { max-width: 560px; }
+  .pd-related { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 720px) {
+  .pd-section { padding: 20px 0 56px; }
+  .pd-related { grid-template-columns: 1fr; }
+}
+
+/* ============================================
    Brand colour accents — packaging 2026
    Small accent overrides only. Delete this block to undo.
    ============================================ */
@@ -990,7 +1071,8 @@ h1, h2, h3, h4 {
 }
 
 /* Prices in a warm espresso instead of near-black */
-.product-info .price { color: var(--brand-espresso); }
+.product-info .price,
+.pd-price { color: var(--brand-espresso); }
 
 /* Gold on dark green: use the lighter label gold for better legibility */
 .hero-copy .eyebrow,

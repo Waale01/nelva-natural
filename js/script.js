@@ -204,13 +204,13 @@ function updateCartCount() {
 function formatNaira(amount) {
   return '₦' + Number(amount).toLocaleString('en-NG');
 }
-function addToCart(name, price, image) {
+function addToCart(name, price, image, qty = 1) {
   const cart = getCart();
   const existing = cart.find((item) => item.name === name);
   if (existing) {
-    existing.qty += 1;
+    existing.qty += qty;
   } else {
-    cart.push({ name, price, image: image || '', qty: 1 });
+    cart.push({ name, price, image: image || '', qty });
   }
   saveCart(cart);
 }
@@ -235,6 +235,26 @@ document.querySelectorAll('.add-cart-btn').forEach((btn) => {
     showToast(`${name} added to cart`);
   });
 });
+
+// Product page: quantity stepper + add to cart
+const productDetail = document.querySelector('.product-detail');
+if (productDetail) {
+  const qtyEl = document.getElementById('pdQty');
+  const MAX_QTY = 20;
+  let qty = 1;
+  const setQty = (n) => {
+    qty = Math.min(MAX_QTY, Math.max(1, n));
+    qtyEl.textContent = qty;
+  };
+  document.getElementById('pdDec').addEventListener('click', () => setQty(qty - 1));
+  document.getElementById('pdInc').addEventListener('click', () => setQty(qty + 1));
+  document.getElementById('pdAdd').addEventListener('click', () => {
+    const name = productDetail.dataset.name;
+    addToCart(name, parseInt(productDetail.dataset.price, 10), productDetail.dataset.image, qty);
+    showToast(qty > 1 ? `${qty} × ${name} added to cart` : `${name} added to cart`);
+    setQty(1);
+  });
+}
 
 // ============================================
 // Checkout page
