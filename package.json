@@ -1,0 +1,13 @@
+{
+  "name": "nelva-natural",
+  "private": true,
+  "description": "NELVA NATURAL: natural haircare website",
+  "scripts": {
+    "build": "node tools/build.js",
+    "build:dist": "node tools/build.js --dist",
+    "admin": "npx decap-server@3.11.5"
+  },
+  "dependencies": {
+    "sharp": "0.35.5"
+  }
+}

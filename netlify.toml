@@ -1,0 +1,9 @@
+# Netlify builds the site from content/ (edited in /admin) and publishes dist/.
+# Commits made by the admin contain [skip netlify], so they don't build on their own;
+# the admin's "Publish to website" button triggers a build through a build hook.
+[build]
+  command = "node tools/build.js --dist"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"

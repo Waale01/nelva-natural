@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Built by tools/build.js from content/products/herbal-bloom.json. Edit the product in /admin, not this file. -->
 <title>Herbal Bloom Hair Butter | NELVA NATURAL</title>
-<meta name="description" content="NELVA Herbal Bloom Moisturizing Hair Butter: a 300g moisturizing butter with amla, hibiscus and fenugreek. Sulfate-free, paraben-free, cruelty-free and vegan.">
+<meta name="description" content="NELVA Herbal Bloom Hair Butter (300g jar): A rich moisturizing butter made with amla, hibiscus and fenugreek, for curls, coils and strands that need softness and lasting moisture. Sulfate-free, paraben-free, cruelty-free and vegan.">
 <link rel="canonical" href="https://nelvanatural.netlify.app/product-herbal-bloom.html">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <meta property="og:type" content="product">
@@ -22,8 +23,10 @@
   "@context": "https://schema.org",
   "@type": "Product",
   "name": "Herbal Bloom Hair Butter",
-  "image": "https://nelvanatural.netlify.app/images/product-herbal-bloom.jpg",
-  "description": "NELVA Herbal Bloom Moisturizing Hair Butter: a 300g moisturizing butter with amla, hibiscus and fenugreek. Sulfate-free, paraben-free, cruelty-free and vegan.",
+  "image": [
+    "https://nelvanatural.netlify.app/images/product-herbal-bloom.jpg"
+  ],
+  "description": "NELVA Herbal Bloom Hair Butter (300g jar): A rich moisturizing butter made with amla, hibiscus and fenugreek, for curls, coils and strands that need softness and lasting moisture. Sulfate-free, paraben-free, cruelty-free and vegan.",
   "brand": {
     "@type": "Brand",
     "name": "NELVA NATURAL"
@@ -94,9 +97,11 @@
 <!-- PRODUCT -->
 <section class="pd-section">
   <div class="container product-detail" data-name="Herbal Bloom Moisturizing Hair Butter" data-price="25000" data-image="images/product-herbal-bloom.jpg">
-    <div class="pd-gallery">
-      <span class="product-badge">New</span>
-      <img src="images/product-herbal-bloom.jpg" alt="NELVA Herbal Bloom Moisturizing Hair Butter, 300g jar">
+    <div class="pd-gallery-wrap">
+      <div class="pd-gallery">
+        <span class="product-badge">New</span>
+        <img src="images/product-herbal-bloom.jpg" alt="NELVA Herbal Bloom Moisturizing Hair Butter, 300g jar" id="pdMainImg">
+      </div>
     </div>
 
     <div class="pd-info">
@@ -136,17 +141,9 @@
         <details class="accordion-item">
           <summary><span>Ingredients</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></summary>
           <div class="accordion-body">
-            <p>Made with <strong>amla</strong>, <strong>hibiscus</strong> and <strong>fenugreek</strong>.</p>
-            <!-- TODO: add the full ingredient list from the label -->
+            <p>Made with amla, hibiscus and fenugreek.</p>
           </div>
         </details>
-
-        <!-- TODO: add a "How to use" section from the label:
-        <details class="accordion-item">
-          <summary><span>How to use</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></summary>
-          <div class="accordion-body"><p>...</p></div>
-        </details>
-        -->
       </div>
     </div>
   </div>
@@ -172,7 +169,7 @@
       <h2>You may also like</h2>
     </div>
     <div class="product-grid pd-related">
-        <article class="product-card" data-name="Herbal Infused Oil" data-price="20000" data-keywords="hair oil scalp strand serum treatment growth shine dry frizz frizzy dull nourish nourishing moisture hydrate lightweight botanical amla hibiscus fenugreek massage roots edges dandruff itchy flaky">
+        <article class="product-card" data-name="Herbal Infused Oil" data-price="20000" data-category="hair-oils" data-keywords="hair oil scalp strand serum treatment growth shine dry frizz frizzy dull nourish nourishing moisture hydrate lightweight botanical amla hibiscus fenugreek massage roots edges dandruff itchy flaky">
           <div class="product-photo">
             <span class="product-badge">Bestseller</span>
             <a href="product-herbal-oil.html" class="product-link"><img src="images/product-herbal-oil.jpg" alt="NELVA Herbal Infused Oil, 100ml dropper bottle"></a>
@@ -188,7 +185,7 @@
           </div>
         </article>
 
-        <article class="product-card coming-soon" data-name="Cleansing Shampoo" data-keywords="shampoo wash cleanse cleansing clarify clarifying sulfate-free sulphate free lather buildup scalp gentle daily co-wash">
+        <article class="product-card coming-soon" data-name="Cleansing Shampoo" data-category="shampoos" data-keywords="shampoo wash cleanse cleansing clarify clarifying sulfate-free sulphate free lather buildup scalp gentle daily co-wash">
           <div class="product-photo" style="--tile-bg: linear-gradient(160deg,#e7e0cd,#cdbf9c);">
             <span class="product-badge">Coming Soon</span>
             <svg class="bottle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M9 2h6v3l1.5 2v13a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1V7L9 5V2z"/><line x1="8" y1="11" x2="16" y2="11"/></svg>
@@ -204,7 +201,7 @@
           </div>
         </article>
 
-        <article class="product-card coming-soon" data-name="Repair Conditioner" data-keywords="conditioner condition repair repairing strengthen strengthening rinse-out rinse out detangle detangling slip damage damaged split ends breakage protein deep conditioner hydrate soft">
+        <article class="product-card coming-soon" data-name="Repair Conditioner" data-category="conditioners" data-keywords="conditioner condition repair repairing strengthen strengthening rinse-out rinse out detangle detangling slip damage damaged split ends breakage protein deep conditioner hydrate soft">
           <div class="product-photo" style="--tile-bg: linear-gradient(160deg,#e9e3d3,#d3c6a3);">
             <span class="product-badge">Coming Soon</span>
             <svg class="bottle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M9 2h6v3l1.5 2v13a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1V7L9 5V2z"/><line x1="8" y1="11" x2="16" y2="11"/></svg>
@@ -238,10 +235,12 @@
       <div class="footer-col">
         <h4>Shop</h4>
         <ul>
-          <li><a href="index.html#shop">Shampoos</a></li>
-          <li><a href="index.html#shop">Conditioners</a></li>
-          <li><a href="index.html#shop">Hair Oils</a></li>
-          <li><a href="index.html#shop">Treatments</a></li>
+          <!-- FOOTER-SHOP:START -->
+          <li><a href="index.html?category=shampoos#shop">Shampoos</a></li>
+          <li><a href="index.html?category=conditioners#shop">Conditioners</a></li>
+          <li><a href="index.html?category=hair-oils#shop">Hair Oils</a></li>
+          <li><a href="index.html?category=treatments#shop">Treatments</a></li>
+          <!-- FOOTER-SHOP:END -->
         </ul>
       </div>
       <div class="footer-col">

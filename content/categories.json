@@ -1,0 +1,24 @@
+{
+  "categories": [
+    {
+      "id": "shampoos",
+      "name": "Shampoos",
+      "colour": "#3c5c46"
+    },
+    {
+      "id": "conditioners",
+      "name": "Conditioners",
+      "colour": "#6b4a34"
+    },
+    {
+      "id": "hair-oils",
+      "name": "Hair Oils",
+      "colour": "#a5773f"
+    },
+    {
+      "id": "treatments",
+      "name": "Treatments",
+      "colour": "#4c6650"
+    }
+  ]
+}

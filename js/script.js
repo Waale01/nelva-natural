@@ -653,3 +653,74 @@ if (contactForm) {
     }
   });
 }
+
+// ============================================
+// Category filter (homepage): tiles and footer links use ?category=<id>#shop
+// ============================================
+(function () {
+  const grid = document.getElementById('productGrid');
+  if (!grid) return;
+  const cards = [...grid.querySelectorAll('.product-card')];
+  const tiles = [...document.querySelectorAll('.category-tile')];
+  const nameOf = (id) => {
+    const tile = tiles.find((t) => t.dataset.category === id);
+    return tile ? tile.querySelector('h3').textContent : id;
+  };
+  const bar = document.createElement('p');
+  bar.className = 'category-bar';
+  bar.hidden = true;
+  grid.parentNode.insertBefore(bar, grid);
+
+  function show(id) {
+    const known = !!id && (cards.some((c) => c.dataset.category === id) || tiles.some((t) => t.dataset.category === id));
+    const active = known ? id : '';
+    cards.forEach((c) => c.classList.toggle('cat-out', !!active && c.dataset.category !== active));
+    document.querySelectorAll('.category-tile').forEach((t) => t.classList.toggle('active', t.dataset.category === active));
+    if (active) {
+      const n = cards.filter((c) => c.dataset.category === active).length;
+      bar.innerHTML = n
+        ? `Showing <strong>${nameOf(active)}</strong> (${n}) · <a href="index.html#shop" data-category-all>Show all products</a>`
+        : `No <strong>${nameOf(active)}</strong> yet, coming soon. <a href="index.html#shop" data-category-all>Show all products</a>`;
+    }
+    bar.hidden = !active;
+  }
+
+  // Clicks on this page filter without reloading
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href*="category="], a[data-category-all]');
+    if (!a) return;
+    const url = new URL(a.getAttribute('href'), location.href);
+    if (url.pathname !== location.pathname && !/index\.html$|\/$/.test(url.pathname)) return;
+    e.preventDefault();
+    const id = a.hasAttribute('data-category-all') ? '' : url.searchParams.get('category') || '';
+    history.replaceState(null, '', id ? `?category=${encodeURIComponent(id)}#shop` : location.pathname + '#shop');
+    show(id);
+    document.getElementById('shop').scrollIntoView({ behavior: 'smooth' });
+  });
+
+  // Typing a search looks through every product, so drop the category filter
+  const search = document.getElementById('searchInput');
+  if (search) {
+    search.addEventListener('input', () => {
+      if (!search.value.trim() || bar.hidden) return;
+      history.replaceState(null, '', location.pathname + '#shop');
+      show('');
+    });
+  }
+
+  show(new URLSearchParams(location.search).get('category') || '');
+})();
+
+// ============================================
+// Product page: extra photos (thumbnails under the main photo)
+// ============================================
+(function () {
+  const main = document.getElementById('pdMainImg');
+  if (!main) return;
+  document.querySelectorAll('.pd-thumb').forEach((b) => {
+    b.addEventListener('click', () => {
+      main.src = b.dataset.src;
+      document.querySelectorAll('.pd-thumb').forEach((x) => x.classList.toggle('active', x === b));
+    });
+  });
+})();

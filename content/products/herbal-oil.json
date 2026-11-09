@@ -1,0 +1,20 @@
+{
+  "name": "Herbal Infused Oil",
+  "category": "hair-oils",
+  "label": "Hair Oil",
+  "status": "available",
+  "price": 20000,
+  "size": "100ml dropper bottle",
+  "badge": "Bestseller",
+  "image": "/images/product-herbal-oil.jpg",
+  "image_alt": "NELVA Herbal Infused Oil, 100ml dropper bottle",
+  "card_text": "Lightweight 100ml scalp & strand oil infused with botanical extracts.",
+  "description": "A lightweight scalp and strand oil infused with botanical extracts. The dropper makes it easy to apply straight to the scalp and along your parts.",
+  "ingredients": "Infused with botanical extracts.",
+  "how_to_use": "",
+  "keywords": "hair oil scalp strand serum treatment growth shine dry frizz frizzy dull nourish nourishing moisture hydrate lightweight botanical amla hibiscus fenugreek massage roots edges dandruff itchy flaky",
+  "review_text": "My scalp has never felt this healthy. The Herbal Infused Oil is now a permanent part of my routine.",
+  "review_name": "Amara O.",
+  "order": 10,
+  "hidden": false
+}

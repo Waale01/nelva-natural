@@ -1,0 +1,155 @@
+# ============================================================
+# NELVA NATURAL admin (Decap CMS): what can be edited at /admin
+# Saves are committed to GitHub with [skip netlify], so they do NOT deploy on their own.
+# The "Publish to website" button (admin/index.html) triggers ONE Netlify build for all saved changes.
+# ============================================================
+backend:
+  name: github
+  repo: Waale01/nelva-natural
+  branch: master
+  site_domain: nelvanatural.netlify.app
+  commit_messages:
+    create: 'Admin: add {{collection}} "{{slug}}" [skip netlify]'
+    update: 'Admin: update {{collection}} "{{slug}}" [skip netlify]'
+    delete: 'Admin: delete {{collection}} "{{slug}}" [skip netlify]'
+    uploadMedia: 'Admin: upload "{{path}}" [skip netlify]'
+    deleteMedia: 'Admin: delete "{{path}}" [skip netlify]'
+
+# For testing on this computer only (npx decap-server): edits files directly, no login
+local_backend: true
+
+site_url: https://nelvanatural.netlify.app
+display_url: https://nelvanatural.netlify.app
+logo_url: /favicon.svg
+
+media_folder: images/uploads
+public_folder: /images/uploads
+
+slug:
+  encoding: ascii
+  clean_accents: true
+  sanitize_replacement: '-'
+
+collections:
+  # ---------------------------------------------------------- PRODUCTS
+  - name: products
+    label: Products
+    label_singular: Product
+    description: >-
+      Every product in the shop. Click a product to edit it, or "+ Product" to add one.
+      After saving, click "Publish to website" (bottom left) to put your changes live.
+    folder: content/products
+    format: json
+    extension: json
+    create: true
+    delete: true
+    slug: '{{name}}'
+    identifier_field: name
+    summary: "{{name}}  ·  {{price | default('no price yet')}}"
+    sortable_fields: ['name', 'price', 'order']
+    view_groups:
+      - { label: Category, field: category }
+    view_filters:
+      # CATEGORY_FILTERS_START
+      - { label: 'Shampoos', field: category, pattern: '^shampoos$' }
+      - { label: 'Conditioners', field: category, pattern: '^conditioners$' }
+      - { label: 'Hair Oils', field: category, pattern: '^hair-oils$' }
+      - { label: 'Treatments', field: category, pattern: '^treatments$' }
+      # CATEGORY_FILTERS_END
+      - { label: '· Coming soon', field: status, pattern: 'coming-soon' }
+      - { label: '· Sold out', field: sold_out, pattern: true }
+      - { label: '· Hidden from the shop', field: hidden, pattern: true }
+    fields:
+      - label: Product name (full)
+        name: name
+        widget: string
+        hint: The full product name, used in the cart and order messages. Once customers have ordered it, avoid changing it.
+      - label: Short name
+        name: title
+        widget: string
+        required: false
+        hint: Shorter name shown on the product card and page, e.g. "Herbal Bloom Hair Butter". Leave empty to use the full name.
+      - label: Category
+        name: category
+        widget: relation
+        collection: settings
+        file: categories
+        search_fields: ['categories.*.name']
+        display_fields: ['categories.*.name']
+        value_field: 'categories.*.id'
+      - { label: Small label above the name, name: label, widget: string, required: false, hint: 'e.g. Hair Oil, Hair Butter, Shampoo' }
+      - label: Status
+        name: status
+        widget: select
+        default: available
+        options:
+          - { label: Available to buy, value: available }
+          - { label: Coming soon (no price, can't be ordered), value: coming-soon }
+      - label: Price (₦)
+        name: price
+        widget: number
+        value_type: int
+        min: 0
+        required: false
+        hint: Numbers only, e.g. 25000. Needed for products that are available to buy.
+      - { label: Size, name: size, widget: string, required: false, hint: 'e.g. 100ml dropper bottle, 300g jar' }
+      - label: Label on the photo
+        name: badge
+        widget: select
+        required: false
+        default: ''
+        options:
+          - { label: None, value: '' }
+          - { label: Bestseller, value: Bestseller }
+          - { label: New, value: New }
+          - { label: Sale, value: Sale }
+      - label: Photo
+        name: image
+        widget: image
+        required: false
+        choose_url: false
+        hint: Portrait photo with the product in the centre, like the existing product photos.
+      - { label: Photo description, name: image_alt, widget: string, required: false, hint: 'For people who cannot see the photo, e.g. NELVA Herbal Infused Oil, 100ml dropper bottle' }
+      - label: More photos
+        name: gallery
+        widget: list
+        required: false
+        collapsed: false
+        summary: 'Photo'
+        hint: Optional. Other angles, the label, texture, or the product in use.
+        field: { label: Photo, name: photo, widget: image, choose_url: false }
+      - { label: Short text on the product card, name: card_text, widget: string, hint: 'One line, e.g. Lightweight 100ml scalp & strand oil infused with botanical extracts.' }
+      - { label: Description, name: description, widget: text, required: false, hint: 'Shown on the product page. Leave an empty line between paragraphs.' }
+      - { label: Ingredients, name: ingredients, widget: text, required: false, hint: 'From the label. Leave an empty line between paragraphs.' }
+      - { label: How to use, name: how_to_use, widget: text, required: false, hint: 'From the label. Leave empty to hide this section.' }
+      - { label: Search words, name: keywords, widget: text, required: false, hint: 'Words people might search for, e.g. dandruff dry curls frizz. Not shown on the site.' }
+      - { label: Customer review, name: review_text, widget: text, required: false }
+      - { label: Reviewer name, name: review_name, widget: string, required: false, hint: 'e.g. Amara O.' }
+      - { label: Sold out, name: sold_out, widget: boolean, default: false, required: false, hint: 'Shows "Sold Out" and stops orders, but keeps the product visible.' }
+      - { label: Hide from the shop, name: hidden, widget: boolean, default: false, required: false, hint: 'Removes the product from the website without deleting it.' }
+      - { label: Position in the shop, name: order, widget: number, value_type: int, default: 500, required: false, hint: 'Lower numbers appear first (existing products use 10, 20, 30, 40).' }
+
+  # ---------------------------------------------------------- SETTINGS
+  - name: settings
+    label: Shop settings
+    description: Categories (the "Shop By Need" tiles on the homepage and the footer Shop links).
+    editor: { preview: false }
+    files:
+      - name: categories
+        label: Categories
+        file: content/categories.json
+        format: json
+        fields:
+          - label: Categories
+            name: categories
+            widget: list
+            summary: '{{fields.name}}'
+            hint: The order here is the order of the tiles on the homepage. Drag to reorder.
+            fields:
+              - { label: Name, name: name, widget: string }
+              - label: Short code
+                name: id
+                widget: string
+                pattern: ['^[a-z0-9-]+$', 'Lowercase letters, numbers and dashes only, e.g. hair-oils']
+                hint: 'Used in web links and keeps products linked to this category, e.g. hair-oils. To rename a category, change only the Name above. Never change the short code of an existing category.'
+              - { label: Tile colour, name: colour, widget: string, required: false, hint: 'Optional, e.g. #3c5c46 (green) or #a5773f (gold)' }

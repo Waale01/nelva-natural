@@ -86,18 +86,20 @@
       <p>Every hair type deserves a formula made for it. Explore our natural haircare edits.</p>
     </div>
     <div class="category-grid">
-      <a href="#shop" class="category-tile" style="--tile-bg: linear-gradient(160deg,#3c5c46,#1c3624);">
+      <!-- CATEGORIES:START (written by tools/build.js from content/categories.json) -->
+      <a href="index.html?category=shampoos#shop" class="category-tile" data-category="shampoos" style="--tile-bg: linear-gradient(160deg,#3c5c46,#1c3624);">
         <div><span>Shop</span><h3>Shampoos</h3></div>
       </a>
-      <a href="#shop" class="category-tile" style="--tile-bg: linear-gradient(160deg,#6b4a34,#3a2a1c);">
+      <a href="index.html?category=conditioners#shop" class="category-tile" data-category="conditioners" style="--tile-bg: linear-gradient(160deg,#6b4a34,#1c3624);">
         <div><span>Shop</span><h3>Conditioners</h3></div>
       </a>
-      <a href="#shop" class="category-tile" style="--tile-bg: linear-gradient(160deg,#a5773f,#6e4c26);">
+      <a href="index.html?category=hair-oils#shop" class="category-tile" data-category="hair-oils" style="--tile-bg: linear-gradient(160deg,#a5773f,#1c3624);">
         <div><span>Shop</span><h3>Hair Oils</h3></div>
       </a>
-      <a href="#shop" class="category-tile" style="--tile-bg: linear-gradient(160deg,#4c6650,#26362a);">
+      <a href="index.html?category=treatments#shop" class="category-tile" data-category="treatments" style="--tile-bg: linear-gradient(160deg,#4c6650,#1c3624);">
         <div><span>Shop</span><h3>Treatments</h3></div>
       </a>
+      <!-- CATEGORIES:END -->
     </div>
   </div>
 </section>
@@ -111,7 +113,8 @@
       <p>Our most-repurchased formulas, powered by botanicals like amla, hibiscus and fenugreek.</p>
     </div>
     <div class="product-grid" id="productGrid">
-      <article class="product-card" data-name="Herbal Infused Oil" data-price="20000" data-keywords="hair oil scalp strand serum treatment growth shine dry frizz frizzy dull nourish nourishing moisture hydrate lightweight botanical amla hibiscus fenugreek massage roots edges dandruff itchy flaky">
+      <!-- PRODUCTS:START (written by tools/build.js from content/products) -->
+      <article class="product-card" data-name="Herbal Infused Oil" data-price="20000" data-category="hair-oils" data-keywords="hair oil scalp strand serum treatment growth shine dry frizz frizzy dull nourish nourishing moisture hydrate lightweight botanical amla hibiscus fenugreek massage roots edges dandruff itchy flaky">
         <div class="product-photo">
           <span class="product-badge">Bestseller</span>
           <a href="product-herbal-oil.html" class="product-link"><img src="images/product-herbal-oil.jpg" alt="NELVA Herbal Infused Oil, 100ml dropper bottle"></a>
@@ -127,7 +130,7 @@
         </div>
       </article>
 
-      <article class="product-card" data-name="Herbal Bloom Moisturizing Hair Butter" data-price="25000" data-keywords="hair butter cream moisturizer moisturizing moisture hydrate hydration dry curls coils kinky definition curl definition soft softness seal leave-in styling amla hibiscus fenugreek shea breakage strengthen thick 4c 4b protective">
+      <article class="product-card" data-name="Herbal Bloom Moisturizing Hair Butter" data-price="25000" data-category="treatments" data-keywords="hair butter cream moisturizer moisturizing moisture hydrate hydration dry curls coils kinky definition curl definition soft softness seal leave-in styling amla hibiscus fenugreek shea breakage strengthen thick 4c 4b protective">
         <div class="product-photo">
           <span class="product-badge">New</span>
           <a href="product-herbal-bloom.html" class="product-link"><img src="images/product-herbal-bloom.jpg" alt="NELVA Herbal Bloom Moisturizing Hair Butter, 300g jar"></a>
@@ -143,7 +146,7 @@
         </div>
       </article>
 
-      <article class="product-card coming-soon" data-name="Cleansing Shampoo" data-keywords="shampoo wash cleanse cleansing clarify clarifying sulfate-free sulphate free lather buildup scalp gentle daily co-wash">
+      <article class="product-card coming-soon" data-name="Cleansing Shampoo" data-category="shampoos" data-keywords="shampoo wash cleanse cleansing clarify clarifying sulfate-free sulphate free lather buildup scalp gentle daily co-wash">
         <div class="product-photo" style="--tile-bg: linear-gradient(160deg,#e7e0cd,#cdbf9c);">
           <span class="product-badge">Coming Soon</span>
           <svg class="bottle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M9 2h6v3l1.5 2v13a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1V7L9 5V2z"/><line x1="8" y1="11" x2="16" y2="11"/></svg>
@@ -159,7 +162,7 @@
         </div>
       </article>
 
-      <article class="product-card coming-soon" data-name="Repair Conditioner" data-keywords="conditioner condition repair repairing strengthen strengthening rinse-out rinse out detangle detangling slip damage damaged split ends breakage protein deep conditioner hydrate soft">
+      <article class="product-card coming-soon" data-name="Repair Conditioner" data-category="conditioners" data-keywords="conditioner condition repair repairing strengthen strengthening rinse-out rinse out detangle detangling slip damage damaged split ends breakage protein deep conditioner hydrate soft">
         <div class="product-photo" style="--tile-bg: linear-gradient(160deg,#e9e3d3,#d3c6a3);">
           <span class="product-badge">Coming Soon</span>
           <svg class="bottle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M9 2h6v3l1.5 2v13a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1V7L9 5V2z"/><line x1="8" y1="11" x2="16" y2="11"/></svg>
@@ -174,6 +177,7 @@
           </div>
         </div>
       </article>
+      <!-- PRODUCTS:END -->
     </div>
     <p class="search-empty" id="searchEmpty" hidden>No products match your search.</p>
   </div>
@@ -272,10 +276,12 @@
       <div class="footer-col">
         <h4>Shop</h4>
         <ul>
-          <li><a href="#shop">Shampoos</a></li>
-          <li><a href="#shop">Conditioners</a></li>
-          <li><a href="#shop">Hair Oils</a></li>
-          <li><a href="#shop">Treatments</a></li>
+          <!-- FOOTER-SHOP:START -->
+          <li><a href="index.html?category=shampoos#shop">Shampoos</a></li>
+          <li><a href="index.html?category=conditioners#shop">Conditioners</a></li>
+          <li><a href="index.html?category=hair-oils#shop">Hair Oils</a></li>
+          <li><a href="index.html?category=treatments#shop">Treatments</a></li>
+          <!-- FOOTER-SHOP:END -->
         </ul>
       </div>
       <div class="footer-col">
