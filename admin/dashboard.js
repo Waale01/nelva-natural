@@ -27,9 +27,14 @@
   var UNPUB_KEY = 'nelva_unpublished';
   var DEMO = /[?&]demo(=|&|$)/.test(location.search);
   // Money (₦) figures and the Money report are switched off for now: the dashboard counts sales and items.
-  // Set to true to bring them back (also add the "Money report" buttons back in admin/index.html).
+  // Set to true to bring them back.
   var SHOW_MONEY = false;
-  var VIEWS = SHOW_MONEY ? /^(home|orders|sell|stock|money)$/ : /^(home|orders|sell|stock)$/;
+  // "I sold something" (recording sales made outside the website) is switched off for now.
+  // Set to true to bring it back: its buttons in admin/index.html are hidden by this switch, not deleted.
+  var SHOW_SELL = false;
+  var VIEWS = new RegExp('^(home|orders|stock' + (SHOW_SELL ? '|sell' : '') + (SHOW_MONEY ? '|money' : '') + ')$');
+  if (!SHOW_SELL) document.querySelectorAll('[data-go="sell"]').forEach(function (el) { el.remove(); });
+  if (!SHOW_MONEY) document.querySelectorAll('[data-go="money"]').forEach(function (el) { el.remove(); });
 
   var S = {
     user: null, products: [], orders: [], stock: { low_alert: 5, entries: [] },
@@ -472,8 +477,10 @@
       }).join('') + '</div>') +
       '<div class="mini-stats">' +
         mini(SHOW_MONEY ? 'Money in' : 'Items sold', val(list), val(prev)) +
-        mini('🌐 Website', web(list), web(prev)) +
-        mini('🏪 In person', shop(list), shop(prev)) +
+        (SHOW_SELL
+          ? mini('🌐 Website', web(list), web(prev)) + mini('🏪 In person', shop(list), shop(prev))
+          : '<div class="mini"><span class="mini-l">🧾 Sales</span><span class="mini-v">' + list.length + '</span>' + trend(list.length, prev.length) + '</div>' +
+            '<div class="mini"><span class="mini-l">🔔 Waiting</span><span class="mini-v">' + waiting().length + '</span><span class="trend flat">to confirm</span></div>') +
       '</div>' + areaChart(pts) + '</section>';
   }
   function mini(label, v, p) {
