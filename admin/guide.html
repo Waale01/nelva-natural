@@ -34,9 +34,22 @@
   <p>How to use your admin</p>
 </header>
 <main>
-  <a href="/admin/">← Back to the admin</a>
+  <a href="/admin/">← Back to the dashboard</a>
   <h1 style="margin-top:16px">Managing the NELVA shop</h1>
-  <p class="muted">Everything you change here (products, prices, photos, ingredients and categories) updates the website for you. No code needed.</p>
+  <p class="muted">Your admin has two parts: the <strong>Dashboard</strong> (orders, sales, money and stock) and the <strong>Editor</strong> (products, prices, photos and categories). No code needed.</p>
+
+  <div class="card">
+    <h2>The Dashboard (nelvanatural.netlify.app/admin)</h2>
+    <p>Use the buttons at the bottom of the screen:</p>
+    <ul>
+      <li><strong>🏠 Home</strong>: money made today, in the last 7 days and this month, plus warnings for new orders and low stock.</li>
+      <li><strong>🔔 Orders</strong>: website orders appear here by themselves. When the customer pays, tap <strong>✅ Paid</strong>. If they never pay, tap <strong>❌ Cancel</strong>. <strong>💬 Chat on WhatsApp</strong> opens a chat with the customer.</li>
+      <li><strong>🛒 Sell</strong>: sold something in person, on Instagram or in a WhatsApp chat? Tap the product photo once for each one sold, tap <strong>Next</strong>, choose how they paid, then <strong>✅ Save sale</strong>.</li>
+      <li><strong>📦 Stock</strong>: when new products arrive, tap <strong>➕ Add</strong>. Tap <strong>✏️ Count</strong> to type exactly how many are on the shelf (do this once at the start). Every paid sale takes them away by itself. The switch turns “Sold out” on or off on the website; then tap <strong>Publish</strong>.</li>
+      <li><strong>📊 Money</strong>: a report for each month, showing what sold, how people paid and every sale. Made a mistake? Tap the sale to undo it.</li>
+    </ul>
+    <p class="muted">Only <strong>paid</strong> orders count as money. Orders, sales and stock are saved straight away and are private; they don’t need publishing.</p>
+  </div>
 
   <div class="key"><strong>The one rule:</strong> saving keeps your changes, but they only appear on the website when you click
     <span class="btnlike">Publish to website</span> (bottom left) and then <strong>OK</strong>. Make all your changes first, then publish once.</div>
@@ -44,8 +57,8 @@
   <div class="card">
     <h2>1. Log in</h2>
     <ol>
-      <li>Go to <strong>nelvanatural.netlify.app/admin</strong> and bookmark it.</li>
-      <li>Click <strong>Login with GitHub</strong>, sign in, then click <strong>Authorize</strong>.</li>
+      <li>Go to <strong>nelvanatural.netlify.app/admin</strong> and bookmark it (on a phone: Share → Add to Home Screen).</li>
+      <li>Tap <strong>Log in with GitHub</strong>, sign in, then click <strong>Authorize</strong>. To edit products, tap <strong>✏️ Edit shop</strong> on the dashboard; that opens the Editor.</li>
       <li>The first time on a new phone or computer, click <span class="btnlike">Publish to website</span> once and paste the Publish link your developer gave you.</li>
     </ol>
   </div>
@@ -53,7 +66,7 @@
   <div class="card">
     <h2>2. Add a new product</h2>
     <ol>
-      <li><strong>Products → + Product</strong>.</li>
+      <li>In the Editor: <strong>Products → + Product</strong>.</li>
       <li>Fill in the <strong>full name</strong>, choose the <strong>category</strong>, set <strong>Status</strong> to <em>Available to buy</em> and type the <strong>price</strong> (numbers only, e.g. 20000).</li>
       <li>Add the <strong>size</strong>, a <strong>photo</strong> (Choose an image → Upload) and the <strong>short text</strong> for the product card.</li>
       <li>Fill in the <strong>Description</strong>, <strong>Ingredients</strong> and <strong>How to use</strong> from the label.</li>

@@ -7,3 +7,8 @@
 
 [build.environment]
   NODE_VERSION = "20"
+
+# Website orders are saved to the private sales repo by netlify/functions/order.js
+# (needs the NELVA_SALES_TOKEN environment variable; see that file).
+[functions]
+  directory = "netlify/functions"

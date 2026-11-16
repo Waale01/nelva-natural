@@ -6,6 +6,7 @@
 //    - footer "Shop" links on every page           (between FOOTER-SHOP markers)
 //    - one page per available product              (product-<id>.html)
 //    - sitemap.xml
+//    - netlify/functions/order-products.json (prices the order function trusts)
 //  With --dist: copy the public site into dist/ and resize photos uploaded through the admin.
 //  Netlify publishes dist/ (netlify.toml), so tools, notes and content files never go online.
 // ============================================================
@@ -72,9 +73,9 @@ const products = fs.readdirSync(rel('content/products')).filter((f) => f.endsWit
 const pageFile = (p) => `product-${p.id}.html`;
 const hasPage = (p) => p.available; // "coming soon" products have no page yet
 
-// ---------- Admin: one "Filter by" button per category (between markers in admin/config.yml) ----------
+// ---------- Admin: one "Filter by" button per category (between markers in admin/editor/config.yml) ----------
 (function writeCategoryFilters() {
-  const file = rel('admin/config.yml');
+  const file = rel('admin/editor/config.yml');
   if (!fs.existsSync(file)) return;
   const yml = fs.readFileSync(file, 'utf8');
   const re = /( *)# CATEGORY_FILTERS_START\r?\n[\s\S]*?# CATEGORY_FILTERS_END/;
@@ -88,6 +89,12 @@ const hasPage = (p) => p.available; // "coming soon" products have no page yet
   const next = yml.replace(re, () => block); // function, so "$" in patterns isn't a replace code
   if (next !== yml) fs.writeFileSync(file, next);
 })();
+
+// ---------- Order function: price list it checks website orders against ----------
+// (netlify/functions/order.js; Netlify bundles functions after this build runs; the file is not in git)
+fs.writeFileSync(rel('netlify/functions/order-products.json'), JSON.stringify(Object.fromEntries(
+  products.filter((p) => p.available && !p.soldOut).map((p) => [p.name, { id: p.id, name: p.name, price: p.price }])
+), null, 2) + '\n');
 
 // ---------- Shared HTML ----------
 const bottle = '<svg class="bottle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M9 2h6v3l1.5 2v13a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1V7L9 5V2z"/><line x1="8" y1="11" x2="16" y2="11"/></svg>';

@@ -436,6 +436,20 @@ if (checkoutGrid) {
       }),
     }).catch(() => { /* non-blocking */ });
 
+    // 1b. Save the order to the admin dashboard (netlify/functions/order.js), shown there as
+    //     "waiting for payment". Prices are checked on the server, so only names and quantities matter.
+    fetch('/.netlify/functions/order', {
+      method: 'POST',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ref,
+        method,
+        items: getCart().map((i) => ({ name: i.name, qty: i.qty })),
+        customer: { name: d.name, phone: d.phone, email: d.email, address: d.address, notes: d.notes },
+      }),
+    }).catch(() => { /* non-blocking: the email and WhatsApp message still have the order */ });
+
     // 2. Customer confirmation — EmailJS free tier, shaped for the
     //    "Order Confirmation" template (order_id, orders list, cost.total).
     if (d.email && emailjsReady) {
