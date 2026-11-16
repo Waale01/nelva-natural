@@ -1,10 +1,9 @@
 // ============================================================
-// NELVA NATURAL: which products are running low (for the "Only 3 left" badges on the website)
+// NELVA NATURAL: which products are running low (for the "Running out" badges on the website)
 //
-// GET /.netlify/functions/stock  ->  { "low": { "Herbal Infused Oil": 3, ... } }
-// Only products with 1..low_alert left are listed (low_alert is the "Warn me when only N are left"
-// number the owner sets in the dashboard, 5 by default). Products with plenty, none counted or none
-// left are never listed, so exact stock numbers stay private.
+// GET /.netlify/functions/stock  ->  { "low": ["Herbal Infused Oil", ...] }
+// Lists the NAMES of products with 1..low_alert left (low_alert is the "Running low at N" number the
+// owner sets in the dashboard, 5 by default). No numbers are ever sent: the website only says "Running out".
 //
 // Stock left is worked out the same way as the dashboard (admin/dashboard.js stockLeft):
 //   last "count" + "add" deliveries since - items in PAID orders since.
@@ -47,12 +46,12 @@ async function readJSON(path) {
 }
 
 exports.handler = async () => {
-  if (!TOKEN) return reply({ low: {} }, false);
+  if (!TOKEN) return reply({ low: [] }, false);
   try {
     const stock = (await readJSON('stock.json')) || { entries: [] };
     const entries = Array.isArray(stock.entries) ? stock.entries : [];
     const lowAlert = Number(stock.low_alert) || 5;
-    if (!entries.length) return reply({ low: {} });
+    if (!entries.length) return reply({ low: [] });
 
     // paid orders (only the month files from the first stock entry onwards are needed)
     const first = entries.map((e) => e.date).sort()[0].slice(0, 7);
@@ -66,7 +65,7 @@ exports.handler = async () => {
     const nameOf = {};
     Object.values(PRODUCTS).forEach((p) => { nameOf[p.id] = p.name; });
 
-    const low = {};
+    const low = [];
     for (const id of Object.keys(nameOf)) { // products on sale on the website right now
       const mine = entries.filter((e) => e.id === id).sort((a, b) => (a.date < b.date ? -1 : 1));
       if (!mine.length) continue;
@@ -79,11 +78,11 @@ exports.handler = async () => {
         if ((o.paid_at || o.date) < start) return;
         (o.items || []).forEach((i) => { if ((i.id || byName[i.name]) === id) n -= Number(i.qty) || 0; });
       });
-      if (n > 0 && n <= lowAlert) low[nameOf[id]] = n;
+      if (n > 0 && n <= lowAlert) low.push(nameOf[id]);
     }
     return reply({ low });
   } catch (e) {
     console.error('Stock check failed', e.message);
-    return reply({ low: {} }, false);
+    return reply({ low: [] }, false);
   }
 };

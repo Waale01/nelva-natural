@@ -603,9 +603,9 @@ if (checkoutGrid) {
 }
 
 // ============================================
-// "Only 3 left" badges: products running low (netlify/functions/stock.js).
-// The function only lists products with a few left (the owner sets how few in /admin);
-// if it can't be reached, nothing is shown.
+// "Running out" badges: products running low (netlify/functions/stock.js).
+// The function only lists the names of products with a few left (the owner sets how few in /admin);
+// no numbers are shown to customers. If it can't be reached, nothing is shown.
 // ============================================
 (function showRunningLow() {
   const cards = document.querySelectorAll('.product-card[data-name]');
@@ -614,22 +614,20 @@ if (checkoutGrid) {
   fetch('/.netlify/functions/stock')
     .then((r) => (r.ok ? r.json() : null))
     .then((data) => {
-      const low = (data && data.low) || {};
+      const low = new Set(Array.isArray(data && data.low) ? data.low : []);
       cards.forEach((card) => {
-        const n = low[card.dataset.name];
         const btn = card.querySelector('.add-cart-btn');
-        if (!n || (btn && btn.disabled) || card.querySelector('.stock-flag')) return;
+        if (!low.has(card.dataset.name) || (btn && btn.disabled) || card.querySelector('.stock-flag')) return;
         const flag = document.createElement('span');
         flag.className = 'stock-flag';
-        flag.textContent = `Only ${n} left`;
+        flag.textContent = 'Running out';
         const photo = card.querySelector('.product-photo');
         if (photo) photo.appendChild(flag);
       });
-      if (detail && low[detail.dataset.name] && !detail.querySelector('.pd-stock-flag')) {
-        const n = low[detail.dataset.name];
+      if (detail && low.has(detail.dataset.name) && !detail.querySelector('.pd-stock-flag')) {
         const line = document.createElement('p');
         line.className = 'pd-stock-flag';
-        line.textContent = `🔥 Running out: only ${n} left`;
+        line.textContent = '🔥 Running out, order soon';
         const row = detail.querySelector('.pd-price-row');
         if (row) row.insertAdjacentElement('afterend', line);
       }
