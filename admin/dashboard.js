@@ -329,6 +329,9 @@
   function chrome(on) {
     document.getElementById('tabs').hidden = !on;
     document.getElementById('topActions').hidden = !on;
+    document.getElementById('side').hidden = !on;
+    document.body.classList.toggle('app', !!on);
+    if (!on) document.getElementById('topTitle').textContent = '';
   }
 
   function showLogin(msg) {
@@ -368,10 +371,17 @@
   function render() {
     if (!S.loaded) return;
     chrome(true);
-    document.querySelectorAll('#tabs [data-go]').forEach(function (b) { b.classList.toggle('on', b.dataset.go === S.view); });
+    document.querySelectorAll('#tabs [data-go], #side [data-go]').forEach(function (b) { b.classList.toggle('on', b.dataset.go === S.view); });
     updateDots();
+    var hour = wat(new Date()).getUTCHours();
+    var titles = { home: (hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening') + ' 👋', orders: 'Orders', sell: 'I sold something', stock: 'Stock', money: 'Money report' };
+    document.getElementById('topTitle').textContent = titles[S.view] || '';
+    document.getElementById('dateText').textContent = dateText(todayKey(), true);
+    document.getElementById('demoPill').hidden = !DEMO;
+    document.getElementById('pubPill').hidden = !getUnpublished();
+    document.body.dataset.view = S.view;
     var html = { home: homeView, orders: ordersView, sell: sellView, stock: stockView, money: moneyView }[S.view] || homeView;
-    view.innerHTML = (DEMO ? '<div class="demo-flag">Practice mode: made-up numbers, nothing is saved</div><br>' : '') + html();
+    view.innerHTML = html();
     view.classList.toggle('has-basket', S.view === 'sell' && basketCount() > 0);
   }
   function updateDots() {
@@ -381,6 +391,9 @@
     var low = lowProducts().length;
     var sd = document.getElementById('stockDot');
     sd.hidden = !low; sd.textContent = low;
+    [['sideOrders', w], ['bellDot', w], ['sideStock', low]].forEach(function (x) {
+      var el = document.getElementById(x[0]); el.hidden = !x[1]; el.textContent = x[1];
+    });
     document.title = (w ? '(' + w + ') ' : '') + 'NELVA Dashboard';
   }
 
@@ -390,72 +403,183 @@
       '<button type="button" class="btn terra small" data-act="publish">Publish</button></div>';
   }
 
-  // ---------- Home
+  // ---------- Home: the overview (one screen on a laptop, no scrolling)
   function homeView() {
     var t = todayKey();
-    var weekStart = addDays(t, -6);
-    var m = t.slice(0, 7);
-    var paid = paidOrders();
-    var inDay = paid.filter(function (o) { return dayKey(paidTime(o)) === t; });
-    var inWeek = paid.filter(function (o) { return dayKey(paidTime(o)) >= weekStart; });
-    var inMonth = paid.filter(function (o) { return monthKey(paidTime(o)) === m; });
-    var hour = wat(new Date()).getUTCHours();
-    var hi = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    var cur = paidBetween(addDays(t, -29), t);
+    var prev = paidBetween(addDays(t, -59), addDays(t, -30));
     var w = waiting();
-    var low = lowProducts();
-    var out = low.filter(function (p) { return stockLeft(p.id) <= 0; });
-    var counted = sellable().some(function (p) { return stockLeft(p.id) != null; });
-
-    var html = '<div class="hello"><h1>' + hi + ' 👋</h1><p>' + dateText(t, true) + '</p></div>' + publishBanner();
-
-    html += '<div class="stats">' +
-      stat('main', '☀️', 'Today', inDay) +
-      stat('', '📅', 'Last 7 days', inWeek) +
-      stat('', '🗓️', MONTHS[+m.slice(5) - 1], inMonth) +
+    return '<div class="dash">' +
+      '<div class="kpis">' +
+        kpi({ ico: '💰', title: 'Money in', sub: 'Last 30 days', value: naira(money(cur)), trend: trend(money(cur), money(prev)), go: 'money', cls: 'main' }) +
+        kpi({ ico: '🧾', title: 'Sales', sub: 'Last 30 days', value: cur.length, trend: trend(cur.length, prev.length), go: 'money' }) +
+        kpi({ ico: '🧴', title: 'Items sold', sub: 'Last 30 days', value: itemsCount(cur), trend: trend(itemsCount(cur), itemsCount(prev)), go: 'money' }) +
+        kpi({ ico: '🔔', title: 'Waiting orders', sub: w.length ? naira(money(w)) + ' not paid yet' : 'Nothing waiting', value: w.length,
+          trend: w.length ? '<span class="trend warn">Tap to see ›</span>' : '<span class="trend up">✓ All done</span>', go: 'orders', cls: w.length ? 'hot' : '' }) +
+      '</div>' +
+      chartCard() + goalCard() + topProductsCard() + stockCard() +
     '</div>';
+  }
+  function paidBetween(from, to) {
+    return paidOrders().filter(function (o) { var k = dayKey(paidTime(o)); return k >= from && k <= to; });
+  }
+  function trend(cur, prev) {
+    if (!cur && !prev) return '<span class="trend flat">–</span>';
+    if (!prev) return '<span class="trend up">▲ new</span>';
+    var p = Math.round((cur - prev) / prev * 100);
+    return '<span class="trend ' + (p >= 0 ? 'up' : 'down') + '" title="Compared with the period before">' + (p >= 0 ? '▲ ' : '▼ ') + Math.abs(p) + '%</span>';
+  }
+  function kpi(o) {
+    return '<button type="button" class="kpi ' + (o.cls || '') + '" data-go="' + o.go + '">' +
+      '<span class="kpi-top"><span><span class="kpi-title">' + esc(o.title) + '</span><span class="kpi-sub">' + esc(o.sub) + '</span></span><span class="kpi-ico">' + o.ico + '</span></span>' +
+      '<span class="kpi-bottom"><span class="kpi-val">' + o.value + '</span>' + (o.trend || '') + '</span></button>';
+  }
+  function cardHead(title, right) { return '<div class="card-head"><h2>' + title + '</h2>' + (right || '') + '</div>'; }
 
-    if (w.length) {
-      html += '<button type="button" class="alert orange" data-go="orders"><span class="ico">🔔</span><span>' +
-        plural(w.length, 'new order') + ' waiting<small>Tap to see who ordered and mark them paid</small></span><span class="go">›</span></button>';
-    }
-    if (low.length) {
-      html += '<button type="button" class="alert ' + (out.length ? 'red' : 'orange') + '" data-go="stock"><span class="ico">' + (out.length ? '🚫' : '⚠️') + '</span><span>' +
-        (out.length ? plural(out.length, 'product') + ' finished' + (low.length > out.length ? ', ' + (low.length - out.length) + ' running low' : '') : plural(low.length, 'product') + ' running low') +
-        '<small>' + esc(low.map(function (p) { var n = stockLeft(p.id); return pname(p) + (n <= 0 ? ': none left' : ': ' + n + ' left'); }).join(' · ')) + '</small></span><span class="go">›</span></button>';
-    }
-    if (!counted) {
-      html += '<button type="button" class="alert green" data-go="stock"><span class="ico">📦</span><span>Count your products once<small>Then the dashboard tells you when something is running low</small></span><span class="go">›</span></button>';
-    }
-
-    html += '<div class="actions">' +
-      '<button type="button" class="action sell" data-go="sell"><span class="ico">🛒</span>I sold something</button>' +
-      '<button type="button" class="action orders" data-go="orders"><span class="ico">🔔</span>Orders' + (w.length ? '<span class="count">' + w.length + '</span>' : '') + '</button>' +
-      '<button type="button" class="action stock" data-go="stock"><span class="ico">📦</span>Stock</button>' +
-      '<a class="action edit" href="/admin/editor/" style="text-decoration:none"><span class="ico">✏️</span>Edit shop</a>' +
-    '</div>';
-
-    // last 14 days
+  // Sales chart (7 days / 30 days / this month)
+  function chartCard() {
+    var r = S.chartRange || '30';
+    var t = todayKey();
     var days = [];
-    for (var i = 13; i >= 0; i -= 1) {
-      var k = addDays(t, -i);
-      var v = money(paid.filter(function (o) { return dayKey(paidTime(o)) === k; }));
-      days.push({ key: k, label: DAYS[new Date(k + 'T12:00:00Z').getUTCDay()][0], value: v, today: k === t, title: dateText(k) + ': ' + naira(v) });
+    if (r === 'month') { for (var d = 1; d <= +t.slice(8); d += 1) days.push(t.slice(0, 8) + String(d).padStart(2, '0')); }
+    else { for (var i = +r - 1; i >= 0; i -= 1) days.push(addDays(t, -i)); }
+    var list = paidBetween(days[0], t);
+    var prev = paidBetween(addDays(days[0], -days.length), addDays(days[0], -1));
+    var web = function (l) { return money(l.filter(function (o) { return o.source === 'website'; })); };
+    var shop = function (l) { return money(l.filter(function (o) { return o.source !== 'website'; })); };
+    var pts = days.map(function (k) {
+      return { label: shortDate(k), value: money(list.filter(function (o) { return dayKey(paidTime(o)) === k; })) };
+    });
+    var ranges = [['7', '7 days'], ['30', '30 days'], ['month', MONTHS[+t.slice(5, 7) - 1]]];
+    return '<section class="card c-chart">' +
+      cardHead('Sales', '<div class="range">' + ranges.map(function (x) {
+        return '<button type="button" class="' + (r === x[0] ? 'on' : '') + '" data-act="chart-range" data-id="' + x[0] + '">' + x[1] + '</button>';
+      }).join('') + '</div>') +
+      '<div class="mini-stats">' +
+        mini('Money in', money(list), money(prev)) +
+        mini('🌐 Website', web(list), web(prev)) +
+        mini('🏪 In person', shop(list), shop(prev)) +
+      '</div>' + areaChart(pts) + '</section>';
+  }
+  function mini(label, v, p) {
+    return '<div class="mini"><span class="mini-l">' + label + '</span><span class="mini-v">' + naira(v) + '</span>' + trend(v, p) + '</div>';
+  }
+  function shortDate(k) { var d = new Date(k + 'T12:00:00Z'); return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()].slice(0, 3); }
+  function niceMax(v) {
+    if (!(v > 0)) return 10000;
+    var p = Math.pow(10, Math.floor(Math.log10(v)));
+    var steps = [1, 2, 2.5, 5, 10];
+    for (var i = 0; i < steps.length; i += 1) if (steps[i] * p >= v) return steps[i] * p;
+    return 10 * p;
+  }
+  // Smooth line that never dips below zero (monotone cubic)
+  function smoothPath(xs, ys) {
+    var n = xs.length;
+    if (n === 1) return 'M0 ' + ys[0] + ' L' + xs[0] * 2 + ' ' + ys[0];
+    var m = []; var tg = []; var i;
+    for (i = 0; i < n - 1; i += 1) m.push((ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]));
+    tg[0] = m[0]; tg[n - 1] = m[n - 2];
+    for (i = 1; i < n - 1; i += 1) tg[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+    for (i = 0; i < n - 1; i += 1) {
+      if (m[i] === 0) { tg[i] = 0; tg[i + 1] = 0; continue; }
+      var a = tg[i] / m[i]; var b = tg[i + 1] / m[i]; var s = a * a + b * b;
+      if (s > 9) { var k = 3 / Math.sqrt(s); tg[i] = k * a * m[i]; tg[i + 1] = k * b * m[i]; }
     }
-    html += '<div class="section-title"><h2>Money, last 14 days</h2><small>' + naira(money(paid.filter(function (o) { return dayKey(paidTime(o)) >= addDays(t, -13); }))) + '</small></div>' +
-      '<div class="card">' + barChart(days) + '</div>';
-
-    html += '<div class="section-title"><h2>Best sellers this month</h2><button type="button" class="link-btn" data-go="money">See more</button></div>' +
-      '<div class="card">' + productRanking(inMonth, 3) + '</div>';
-
-    var recent = paid.slice().sort(function (a, b) { return paidTime(a) < paidTime(b) ? 1 : -1; }).slice(0, 5);
-    html += '<div class="section-title"><h2>Latest sales</h2><button type="button" class="link-btn" data-go="money">See all</button></div>' +
-      '<div class="card">' + (recent.length ? recent.map(saleRow).join('') : emptyHtml('🌱', 'No sales yet. Tap 🛒 Sell when you sell something.')) + '</div>';
-    return html;
+    var d = 'M' + xs[0].toFixed(1) + ' ' + ys[0].toFixed(1);
+    for (i = 0; i < n - 1; i += 1) {
+      var h = (xs[i + 1] - xs[i]) / 3;
+      d += ' C' + (xs[i] + h).toFixed(1) + ' ' + (ys[i] + tg[i] * h).toFixed(1) + ' ' + (xs[i + 1] - h).toFixed(1) + ' ' + (ys[i + 1] - tg[i + 1] * h).toFixed(1) + ' ' + xs[i + 1].toFixed(1) + ' ' + ys[i + 1].toFixed(1);
+    }
+    return d;
   }
-  function stat(cls, ico, label, list) {
-    return '<div class="stat ' + cls + '"><span class="ico">' + ico + '</span><span class="lbl">' + esc(label) + '</span>' +
-      '<span class="big">' + shortNaira(money(list)) + '</span><span class="sub">' + plural(itemsCount(list), 'item') + ' sold</span></div>';
+  function areaChart(pts) {
+    var W = 600; var H = 200; var n = pts.length;
+    var max = niceMax(Math.max.apply(null, pts.map(function (p) { return p.value; })) * 1.08);
+    var xs = pts.map(function (p, i) { return n === 1 ? W / 2 : i / (n - 1) * W; });
+    var ys = pts.map(function (p) { return H - p.value / max * H; });
+    var line = smoothPath(xs, ys);
+    var grid = [0, 0.25, 0.5, 0.75, 1].map(function (f) {
+      return '<span class="gy" style="bottom:' + f * 100 + '%"><i>' + (f ? shortNaira(max * f) : '0') + '</i></span>';
+    }).join('');
+    var step = Math.max(1, Math.ceil(n / 7)); var labels = '';
+    for (var i = 0; i < n; i += step) labels += '<span style="left:' + (xs[i] / W * 100).toFixed(2) + '%">' + esc(pts[i].label) + '</span>';
+    return '<div class="area" data-points="' + esc(JSON.stringify(pts.map(function (p) { return [p.label, p.value]; }))) + '" data-max="' + max + '">' +
+      '<div class="plot">' + grid +
+        '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#2c5440" stop-opacity="0.32"/><stop offset="1" stop-color="#2c5440" stop-opacity="0.02"/></linearGradient></defs>' +
+        '<path d="' + line + ' L' + W + ' ' + H + ' L0 ' + H + ' Z" fill="url(#areaFill)"/>' +
+        '<path d="' + line + '" fill="none" stroke="#2c5440" stroke-width="2.5" vector-effect="non-scaling-stroke"/></svg>' +
+        '<span class="tip-dot"></span><span class="tip"></span>' +
+      '</div><div class="xl">' + labels + '</div></div>';
   }
+
+  // Monthly goal rings
+  function ring(r, frac, color) {
+    var c = 2 * Math.PI * r;
+    return '<circle cx="100" cy="100" r="' + r + '" fill="none" stroke="#eeebe4" stroke-width="15"/>' +
+      (frac > 0 ? '<circle cx="100" cy="100" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="15" stroke-linecap="round" stroke-dasharray="' +
+        (c * Math.min(1, frac)).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 100 100)"/>' : '');
+  }
+  function goalCard() {
+    var goal = Number(S.stock.monthly_target) || 0;
+    var t = todayKey(); var m = t.slice(0, 7);
+    var monthMoney = money(paidOrders().filter(function (o) { return monthKey(paidTime(o)) === m; }));
+    var dayMoney = money(paidOrders().filter(function (o) { return dayKey(paidTime(o)) === t; }));
+    var p = m.split('-'); var nDays = new Date(Date.UTC(+p[0], +p[1], 0)).getUTCDate();
+    var daily = goal ? Math.round(goal / nDays) : 0;
+    var pm = goal ? monthMoney / goal : 0; var pd = daily ? dayMoney / daily : 0;
+    var html = '<section class="card c-goal">' + cardHead('Monthly goal', goal ? '<button type="button" class="link-btn" data-act="ask-target">Change</button>' : '') +
+      '<div class="goal"><div class="goal-legend">' +
+        '<div><span class="lg"><i style="background:var(--terra)"></i>This month</span><b>' + naira(monthMoney) + '</b>' + (goal ? '<small>of ' + naira(goal) + '</small>' : '') + '</div>' +
+        '<div><span class="lg"><i style="background:var(--forest-2)"></i>Today</span><b>' + naira(dayMoney) + '</b>' + (daily ? '<small>of ' + naira(daily) + ' a day</small>' : '') + '</div>' +
+      '</div><div class="donut"><svg viewBox="0 0 200 200" aria-hidden="true">' + ring(84, pm, 'var(--terra)') + ring(62, pd, 'var(--forest-2)') + '</svg>' +
+        '<span class="donut-mid">' + (goal ? '<b>' + Math.round(pm * 100) + '%</b><small>of goal</small>' : '🎯') + '</span></div></div>';
+    if (!goal) html += '<button type="button" class="btn terra small" style="width:100%" data-act="ask-target">🎯 Set a monthly goal</button>';
+    else if (pm >= 1) html += '<p class="goal-note">🎉 Goal reached this month!</p>';
+    return html + '</section>';
+  }
+
+  // Top selling products (last 30 days)
+  function soldSince(from) {
+    var by = {};
+    paidBetween(from, todayKey()).forEach(function (o) {
+      o.items.forEach(function (i) { var p = itemProduct(i); if (p) by[p.id] = (by[p.id] || 0) + (Number(i.qty) || 0); });
+    });
+    return by;
+  }
+  function topProductsCard() {
+    var sold = soldSince(addDays(todayKey(), -29));
+    var list = sellable().sort(function (a, b) { return (sold[b.id] || 0) - (sold[a.id] || 0) || byOrder(a, b); });
+    var html = '<section class="card c-top">' + cardHead('Top selling products', '<small class="muted">Last 30 days</small>');
+    if (!list.length) return html + emptyHtml('🧴', 'No products yet.') + '</section>';
+    return html + '<div class="prod-row">' + list.map(function (p, i) {
+      var left = stockLeft(p.id); var src = imgUrl(p);
+      return '<button type="button" class="prod" data-go="stock"><span class="prod-img">' +
+        (src ? '<img src="/' + esc(src) + '" alt="" loading="lazy" onerror="this.onerror=null;this.src=\'' + RAW + esc(src) + '\'">' : '<span class="noimg">🧴</span>') +
+        (i === 0 && sold[p.id] ? '<span class="prod-badge">🏆 Best</span>' : '') + '</span>' +
+        '<span class="prod-name">' + esc(pname(p)) + '</span>' +
+        '<span class="prod-sub"><b>' + (sold[p.id] || 0) + ' sold</b>' + (left != null ? ' · ' + Math.max(0, left) + ' left' : '') + '</span></button>';
+    }).join('') + '</div></section>';
+  }
+
+  // Stock levels
+  function stockCard() {
+    var list = sellable();
+    var html = '<section class="card c-stock">' + cardHead('Stock', '<button type="button" class="link-btn" data-go="stock">Manage</button>');
+    if (!list.some(function (p) { return stockLeft(p.id) != null; })) {
+      return html + '<div class="empty" style="padding:12px 4px"><span class="ico">📦</span>Count your products once to see how many are left.</div>' +
+        '<button type="button" class="btn terra small" style="width:100%" data-go="stock">📦 Count stock</button></section>';
+    }
+    var lefts = list.map(function (p) { return stockLeft(p.id) || 0; });
+    var max = Math.max.apply(null, lefts.concat([lowAlert() * 3]));
+    return html + '<div class="levels">' + list.map(function (p) {
+      var n = stockLeft(p.id); var st = stockState(n);
+      return '<div class="level"><div class="level-top"><span>' + esc(pname(p)) + '</span><b class="' + st + '">' +
+        (n == null ? 'Not counted' : n <= 0 ? 'None left' : n + ' left') + '</b></div>' +
+        '<div class="level-bar ' + st + '"><i style="width:' + (n > 0 ? Math.max(3, n / max * 100) : 0).toFixed(1) + '%"></i></div></div>';
+    }).join('') + '</div><p class="level-note">⚠️ Warns you at ' + lowAlert() + ' left</p></section>';
+  }
+
   function emptyHtml(ico, text) { return '<div class="empty"><span class="ico">' + ico + '</span>' + esc(text) + '</div>'; }
 
   function barChart(days) {
@@ -517,7 +641,7 @@
     if (!list.length) {
       html += emptyHtml(tab === 'waiting' ? '😌' : '📭', tab === 'waiting' ? 'No orders waiting. All done!' : 'Nothing here yet.');
     } else {
-      html += list.map(orderCard).join('');
+      html += '<div class="order-list">' + list.map(orderCard).join('') + '</div>';
     }
     return html;
   }
@@ -765,6 +889,14 @@
         (S.busy ? 'Saving…' : makeOut ? '🚫 Yes, sold out' : '✅ Yes, can be ordered') + '</button>' +
         '<button type="button" class="btn light big" data-act="close-sheet">Cancel</button></div>';
     },
+    target: function (s) {
+      return '<div class="big-emoji">🎯</div><h2>Monthly goal</h2><p class="lead">How much money do you want to make each month?</p>' +
+        '<label class="field"><span>Goal for the month (₦)</span><input id="goalAmount" inputmode="numeric" value="' + esc(Number(s.amount).toLocaleString('en-NG')) + '" autofocus></label>' +
+        '<div class="chips" style="margin-top:12px">' + [300000, 500000, 1000000, 2000000].map(function (n) {
+          return '<button type="button" data-act="goal-chip" data-id="' + n + '">' + shortNaira(n) + '</button>'; }).join('') + '</div>' +
+        '<div class="stack"><button type="button" class="btn green big" data-act="do-target"' + (S.busy ? ' disabled' : '') + '><span class="ico">✅</span>' + (S.busy ? 'Saving…' : 'Save goal') + '</button>' +
+        '<button type="button" class="btn light big" data-act="close-sheet">Cancel</button></div>';
+    },
     published: function (s) {
       return '<div class="big-emoji">' + (s.ok ? '🚀' : '📶') + '</div><h2>' + esc(s.title) + '</h2><p class="lead">' + esc(s.detail) + '</p>' +
         '<div class="stack"><button type="button" class="btn forest big" data-act="close-sheet">OK</button></div>';
@@ -826,6 +958,18 @@
         if (state === 'done') setUnpublished(false);
         openSheet({ type: 'published', title: title, detail: detail, ok: state !== 'error' });
         render();
+      });
+    },
+    'goal-chip': function (el) { S.sheet.amount = Number(el.dataset.id); drawSheet(); },
+    'chart-range': function (el) { S.chartRange = el.dataset.id; render(); },
+    'ask-target': function () { openSheet({ type: 'target', amount: Number(S.stock.monthly_target) || 500000 }); },
+    'do-target': function () {
+      var a = document.getElementById('goalAmount'); var v = Number(digits(a && a.value));
+      if (!(v > 0)) { alert('Please type an amount, e.g. 500000'); return; }
+      S.sheet.amount = v;
+      saving(function () {
+        return changeStock(function (d) { d.monthly_target = v; }, 'Monthly goal: ' + naira(v))
+          .then(function () { closeSheet(); toast('Goal saved 🎯'); render(); });
       });
     },
     'orders-tab': function (el) { S.ordersTab = el.dataset.id; render(); },
@@ -954,11 +1098,30 @@
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && S.sheet && !S.busy) closeSheet(); });
   sheetEl.addEventListener('input', function (e) {
-    if (e.target.id === 'sellAmount') {
+    if (e.target.id === 'sellAmount' || e.target.id === 'goalAmount') {
       var n = digits(e.target.value);
       e.target.value = n ? Number(n).toLocaleString('en-NG') : '';
     }
   });
+
+  // Chart: show the amount for the day under the finger / mouse
+  function chartTip(e) {
+    var plot = e.target.closest && e.target.closest('.area .plot');
+    document.querySelectorAll('.area .plot.hover').forEach(function (p) { if (p !== plot) p.classList.remove('hover'); });
+    if (!plot) return;
+    var area = plot.parentNode; var pts = JSON.parse(area.dataset.points); var max = Number(area.dataset.max) || 1;
+    var r = plot.getBoundingClientRect(); var n = pts.length;
+    var i = n === 1 ? 0 : Math.max(0, Math.min(n - 1, Math.round((e.clientX - r.left) / r.width * (n - 1))));
+    var x = n === 1 ? 50 : i / (n - 1) * 100; var y = pts[i][1] / max * 100;
+    var dot = plot.querySelector('.tip-dot'); var tip = plot.querySelector('.tip');
+    dot.style.left = x + '%'; dot.style.bottom = y + '%';
+    tip.style.left = x + '%'; tip.style.bottom = Math.min(y, 70) + '%';
+    tip.style.transform = 'translate(' + (x > 80 ? '-100%' : x < 20 ? '0' : '-50%') + ', -14px)';
+    tip.innerHTML = '<b>' + naira(pts[i][1]) + '</b>' + esc(pts[i][0]);
+    plot.classList.add('hover');
+  }
+  document.addEventListener('pointermove', chartTip);
+  document.addEventListener('pointerdown', chartTip);
 
   // New website orders: check every 2 minutes while the page is open
   setInterval(function () { if (S.loaded && !S.sheet && !S.busy && document.visibilityState === 'visible') refresh(true); }, 120000);
@@ -1017,7 +1180,7 @@
       files[f] = files[f] || { orders: [] };
       files[f].orders.push(o);
     });
-    files[SALES_REPO + ':stock.json'] = { low_alert: 5, entries: [
+    files[SALES_REPO + ':stock.json'] = { low_alert: 5, monthly_target: 1000000, entries: [
       { date: new Date(now - 50 * 864e5).toISOString(), id: 'herbal-oil', type: 'count', qty: 80 },
       { date: new Date(now - 50 * 864e5).toISOString(), id: 'herbal-bloom', type: 'count', qty: 26 },
     ] };

@@ -264,3 +264,187 @@ h1, h2, h3 { margin: 0; }
 .pick .pinfo, .pick .pname, .pick .pleft { display: block; }
 .stock-row { flex-wrap: wrap; }
 .stock-row .web { flex-basis: 100%; margin-top: 2px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 0.9rem; text-align: left; }
+
+/* ============================================================
+   Overview (Home) + laptop layout with a sidebar
+   ============================================================ */
+.top-title, .date-pill, .sale-btn, .bell, .side { display: none; }
+.demo-pill { background: var(--terra); color: #fff; font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; white-space: nowrap; align-self: center; }
+.pub-pill { background: #fff; color: var(--terra-2); font-size: 0.8rem; font-weight: 600; padding: 8px 12px; border-radius: 20px; white-space: nowrap; }
+.icon-btn svg { width: 22px; height: 22px; }
+.icon-btn { display: inline-grid; place-items: center; position: relative; }
+.bell .dot { top: 4px; right: 2px; }
+
+/* --- cards --- */
+.dash { display: flex; flex-direction: column; gap: 14px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.card-head h2 { font-size: 1.05rem; color: var(--text); font-weight: 600; }
+.card-head small { font-size: 0.8rem; }
+
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.kpi { display: flex; flex-direction: column; justify-content: space-between; gap: 10px; text-align: left; background: var(--card); border-radius: 16px; box-shadow: var(--shadow); padding: 14px 14px 12px; min-width: 0; }
+.kpi:active { transform: scale(0.98); }
+.kpi-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.kpi-title { display: block; font-weight: 600; font-size: 0.92rem; }
+.kpi-sub { display: block; font-size: 0.74rem; color: var(--muted); }
+.kpi-ico { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--forest-soft); display: grid; place-items: center; font-size: 1.2rem; }
+.kpi-bottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 6px; flex-wrap: wrap; }
+.kpi-val { font-size: 1.45rem; font-weight: 700; color: var(--forest); line-height: 1.1; white-space: nowrap; }
+.kpi.main { background: var(--forest); color: #fff; }
+.kpi.main .kpi-sub { color: rgba(255,255,255,0.7); }
+.kpi.main .kpi-val { color: #fff; }
+.kpi.main .kpi-ico { background: rgba(255,255,255,0.14); }
+.kpi.main .trend.up { background: rgba(255,255,255,0.16); color: #c9f0d6; }
+.kpi.main .trend.down { background: rgba(255,255,255,0.16); color: #ffd2c8; }
+.kpi.hot { box-shadow: 0 0 0 2px var(--orange) inset, var(--shadow); }
+.kpi.hot .kpi-ico { background: var(--orange-soft); }
+@media (max-width: 420px) { .kpi-val { font-size: 1.15rem; } .kpi-ico { width: 34px; height: 34px; font-size: 1rem; } }
+
+.trend { font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+.trend.up { background: var(--green-soft); color: var(--green); }
+.trend.down { background: var(--red-soft); color: var(--red); }
+.trend.flat { background: var(--grey-soft); color: var(--muted); }
+.trend.warn { background: var(--orange-soft); color: var(--orange); }
+
+/* --- sales chart --- */
+.c-chart, .c-goal, .c-top, .c-stock { display: flex; flex-direction: column; min-width: 0; }
+.range { display: flex; gap: 4px; background: var(--grey-soft); padding: 3px; border-radius: 10px; }
+.range button { font-size: 0.78rem; font-weight: 600; padding: 6px 10px; border-radius: 8px; color: var(--muted); }
+.range button.on { background: var(--card); color: var(--forest); box-shadow: var(--shadow); }
+.mini-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.mini { min-width: 0; padding-left: 10px; border-left: 3px solid var(--forest-soft); }
+.mini:first-child { border-left-color: var(--forest-2); }
+.mini-l { display: block; font-size: 0.74rem; color: var(--muted); white-space: nowrap; }
+.mini-v { display: block; font-weight: 700; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini .trend { font-size: 0.66rem; padding: 1px 6px; }
+.area { display: flex; flex-direction: column; flex: 1; min-height: 0; padding-left: 40px; }
+.plot { position: relative; height: 170px; flex: 1; min-height: 110px; touch-action: pan-y; }
+.plot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.gy { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed #e4ded0; }
+.gy i { position: absolute; right: calc(100% + 6px); bottom: -0.55em; font-style: normal; font-size: 0.66rem; color: var(--muted); white-space: nowrap; }
+.xl { position: relative; height: 20px; margin-top: 4px; }
+.xl span { position: absolute; transform: translateX(-50%); font-size: 0.66rem; color: var(--muted); white-space: nowrap; }
+.xl span:first-child { transform: none; }
+.tip-dot, .tip { position: absolute; display: none; pointer-events: none; }
+.plot.hover .tip-dot, .plot.hover .tip { display: block; }
+.tip-dot { width: 12px; height: 12px; margin: 0 0 -6px -6px; border-radius: 50%; background: var(--terra); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25); }
+.tip { background: var(--text); color: #fff; font-size: 0.72rem; padding: 6px 10px; border-radius: 8px; white-space: nowrap; line-height: 1.3; z-index: 2; }
+.tip b { display: block; font-size: 0.86rem; }
+
+/* --- monthly goal --- */
+.goal { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex: 1; min-height: 0; }
+.goal-legend { display: grid; gap: 14px; min-width: 0; }
+.goal-legend b { display: block; font-size: 1.15rem; color: var(--text); white-space: nowrap; }
+.goal-legend small { display: block; font-size: 0.74rem; color: var(--muted); }
+.lg { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); }
+.lg i { width: 12px; height: 8px; border-radius: 4px; }
+.donut { position: relative; width: 150px; flex: none; aspect-ratio: 1; max-height: 100%; }
+.donut svg { width: 100%; height: 100%; }
+.donut-mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 1.8rem; }
+.donut-mid b { font-size: 1.35rem; color: var(--forest); line-height: 1; }
+.donut-mid small { font-size: 0.7rem; color: var(--muted); }
+.goal-note { margin: 6px 0 0; text-align: center; font-weight: 600; color: var(--green); font-size: 0.9rem; }
+
+/* --- top products --- */
+.prod-row { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; flex: 1; min-height: 0; }
+.prod { flex: none; width: 150px; display: flex; flex-direction: column; text-align: left; scroll-snap-align: start; min-height: 0; }
+.prod-img { position: relative; display: block; width: 100%; height: 150px; flex: 1; min-height: 70px; border-radius: 12px; overflow: hidden; background: var(--cream); }
+.prod-img img { width: 100%; height: 100%; object-fit: cover; }
+.prod-img .noimg { display: grid; place-items: center; height: 100%; font-size: 2.2rem; }
+.prod-badge { position: absolute; top: 8px; left: 8px; background: rgba(255,255,255,0.95); font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 20px; color: var(--terra-2); }
+.prod-name { display: block; font-weight: 600; font-size: 0.88rem; margin-top: 8px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prod-sub { display: block; font-size: 0.76rem; color: var(--muted); }
+.prod-sub b { color: var(--forest); }
+
+/* --- stock levels --- */
+.levels { display: grid; gap: 14px; flex: 1; align-content: start; min-height: 0; overflow: auto; }
+.level-top { display: flex; justify-content: space-between; gap: 8px; font-size: 0.86rem; }
+.level-top span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.level-top b { white-space: nowrap; font-size: 0.82rem; }
+.level-top b.ok { color: var(--green); } .level-top b.low { color: var(--orange); } .level-top b.out { color: var(--red); } .level-top b.none { color: var(--muted); font-weight: 500; }
+.level-bar { height: 12px; border-radius: 6px; background: var(--grey-soft); margin-top: 6px; overflow: hidden; }
+.level-bar i { display: block; height: 100%; border-radius: 6px; background: var(--green); }
+.level-bar.low i { background: var(--orange); } .level-bar.out i { background: var(--red); }
+.level-note { margin: 10px 0 0; font-size: 0.76rem; color: var(--muted); }
+
+/* ============================================================
+   Laptop / desktop: sidebar + everything on one screen
+   ============================================================ */
+@media (min-width: 1024px) {
+  body.app { display: grid; grid-template-columns: 236px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); min-height: 100vh; padding-bottom: 0; }
+  body.app .tabs { display: none !important; }
+  body.app .side:not([hidden]) { display: flex; }
+  .side { grid-row: 1 / 3; grid-column: 1; position: sticky; top: 0; height: 100vh; flex-direction: column; gap: 6px; background: var(--card); border-right: 1px solid var(--line); padding: 22px 16px 18px; }
+  .side-brand { display: flex; align-items: center; gap: 12px; padding: 0 8px 18px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .side-brand .logo { width: 42px; height: 42px; border-radius: 12px; background: var(--forest); color: #f8f5ee; display: grid; place-items: center; font-family: 'Playfair Display', Georgia, serif; font-size: 1.5rem; font-weight: 700; }
+  .side-brand strong { display: block; font-family: 'Playfair Display', Georgia, serif; font-size: 1.2rem; letter-spacing: 0.08em; color: var(--forest); line-height: 1.1; }
+  .side-brand small { display: block; font-size: 0.74rem; color: var(--muted); }
+  .side-nav, .side-foot { display: grid; gap: 4px; }
+  .side-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); }
+  .side-nav button, .side-foot a, .side-foot button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 12px; border-radius: 12px; font-size: 0.92rem; font-weight: 500; color: var(--text); text-decoration: none; text-align: left; }
+  .side-nav button:hover, .side-foot a:hover, .side-foot button:hover { background: var(--cream); }
+  .side svg { width: 20px; height: 20px; flex: none; color: var(--muted); }
+  .side-nav button.on { background: var(--forest); color: #fff; font-weight: 600; box-shadow: 0 6px 16px rgba(31,61,43,0.25); }
+  .side-nav button.on svg { color: #fff; }
+  .side-count { margin-left: auto; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--red); color: #fff; font-size: 0.72rem; display: grid; place-items: center; }
+  .side-count.warn { background: var(--orange); }
+  .side-foot a, .side-foot button { font-size: 0.86rem; padding: 9px 12px; color: var(--muted); }
+
+  body.app .top { grid-column: 2; position: sticky; top: 0; background: var(--cream); color: var(--text); padding: 18px 28px 12px; gap: 16px; }
+  body.app .brand, body.app .menu-btn { display: none; }
+  body.app .top-title { display: block; flex: 1; font-family: 'Playfair Display', Georgia, serif; font-size: 1.6rem; color: var(--forest); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.app .top-actions { gap: 10px; align-items: center; }
+  body.app .date-pill { display: inline-flex; align-items: center; gap: 8px; background: var(--card); border-radius: 12px; padding: 10px 14px; font-size: 0.85rem; font-weight: 500; box-shadow: var(--shadow); white-space: nowrap; }
+  body.app .date-pill svg { width: 18px; height: 18px; color: var(--muted); }
+  body.app .icon-btn { background: var(--card); color: var(--text); box-shadow: var(--shadow); border-radius: 12px; width: 44px; height: 44px; font-size: 1.2rem; }
+  body.app .bell { display: inline-grid; }
+  body.app .sale-btn { display: inline-flex; min-height: 44px; padding: 0 18px; }
+  body.app .pub-pill { background: var(--terra-soft); }
+  body.app .view { grid-column: 2; max-width: 1180px; width: 100%; margin: 0; padding: 4px 28px 28px; }
+  body.app[data-view="home"] .view { max-width: none; }
+  body.app .basket { left: 236px; bottom: 0; }
+  body.app .toast { top: 24px; left: calc(50% + 118px); }
+
+  /* the overview fills the screen exactly: no scrolling */
+  .dash { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: auto minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; height: calc(100vh - 106px); }
+  .dash .kpis { grid-column: 1 / -1; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .dash .kpi { padding: 16px 18px 14px; }
+  .dash .kpi-val { font-size: 1.7rem; }
+  .c-chart { grid-column: 1 / 9; }
+  .c-goal { grid-column: 9 / 13; }
+  .c-top { grid-column: 1 / 9; }
+  .c-stock { grid-column: 9 / 13; }
+  .dash .card { padding: 16px 20px; min-height: 0; overflow: hidden; }
+  .dash .plot { height: auto; }
+  .dash .prod { height: 100%; width: 170px; }
+  .dash .prod-img { height: auto; }
+  .dash .donut { width: auto; height: 100%; max-width: 190px; min-width: 110px; }
+}
+@media (min-width: 1024px) and (max-height: 720px) {
+  .dash { height: auto; min-height: 600px; grid-template-rows: auto 300px 260px; }
+}
+
+/* fixes after review */
+.top-actions .bell, .top-actions .date-pill, .top-actions .sale-btn { display: none; }
+@media (max-width: 600px) {
+  .xl span:nth-child(even) { display: none; }
+  .brand span { display: none; }
+  .demo-pill { font-size: 0.66rem; padding: 3px 8px; }
+}
+@media (min-width: 1024px) {
+  body.app .top-actions .bell { display: inline-grid; }
+  body.app .top-actions .date-pill { display: inline-flex; }
+  body.app .top-actions .sale-btn { display: inline-flex; }
+  body.app .hello h1, body.app .month h1 { font-size: 1.3rem; }
+  body.app .hello h1 { display: none; }
+  body.app .order-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  body.app .order-list .order { margin: 0; }
+  body.app .pick-grid { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 600px) {
+  .wide-only { display: none; }
+  .top { gap: 8px; padding-left: 12px; padding-right: 12px; }
+  .top-actions { gap: 6px; align-items: center; min-width: 0; }
+  .pub-pill { font-size: 0.74rem; padding: 7px 10px; }
+  .icon-btn { width: 42px; height: 42px; }
+}
