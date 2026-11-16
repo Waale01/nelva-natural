@@ -26,10 +26,14 @@
   var USER_KEY = 'decap-cms-user';
   var UNPUB_KEY = 'nelva_unpublished';
   var DEMO = /[?&]demo(=|&|$)/.test(location.search);
+  // Money (₦) figures and the Money report are switched off for now: the dashboard counts sales and items.
+  // Set to true to bring them back (also add the "Money report" buttons back in admin/index.html).
+  var SHOW_MONEY = false;
+  var VIEWS = SHOW_MONEY ? /^(home|orders|sell|stock|money)$/ : /^(home|orders|sell|stock)$/;
 
   var S = {
     user: null, products: [], orders: [], stock: { low_alert: 5, entries: [] },
-    view: 'home', ordersTab: 'waiting', month: null, basket: {}, sheet: null, busy: false, loaded: false,
+    view: 'home', ordersTab: 'waiting', categories: [], localImages: {}, month: null, basket: {}, sheet: null, busy: false, loaded: false,
   };
   var cache = {}; // path -> { sha, data } so a refresh only downloads files that changed
 
@@ -115,7 +119,7 @@
     var src = imgUrl(p);
     cls = 'thumb' + (cls ? ' ' + cls : '');
     if (!src) return '<span class="' + cls + ' blank">🌿</span>';
-    return '<img class="' + cls + '" src="/' + esc(src) + '" alt="" loading="lazy" onerror="this.onerror=null;this.src=\'' + RAW + esc(src) + '\'">';
+    return '<img class="' + cls + '" ' + imgAttrs(src) + ' alt="" loading="lazy">';
   }
 
   function paidTime(o) { return o.paid_at || o.date; }
@@ -124,6 +128,9 @@
   function qtyOf(o) { return (o.items || []).reduce(function (s, i) { return s + (Number(i.qty) || 0); }, 0); }
   function money(list) { return list.reduce(function (s, o) { return s + (Number(o.total) || 0); }, 0); }
   function itemsCount(list) { return list.reduce(function (s, o) { return s + qtyOf(o); }, 0); }
+  function val(list) { return SHOW_MONEY ? money(list) : itemsCount(list); }
+  function fmt(n) { return SHOW_MONEY ? naira(n) : plural(Math.round(n), 'item'); }
+  function fmtShort(n) { return SHOW_MONEY ? shortNaira(n) : String(Math.round(n * 10) / 10); }
   function itemsText(o) {
     return (o.items || []).map(function (i) { var p = itemProduct(i); return i.qty + ' × ' + (p ? pname(p) : i.name); }).join(', ');
   }
@@ -225,6 +232,8 @@
 
   // ============================================================ loading
   async function loadProducts() {
+    var cats = await readJSON(SITE_REPO, 'content/categories.json', SITE_BRANCH);
+    S.categories = (cats.data && cats.data.categories) || [];
     var files = (await listDir(SITE_REPO, 'content/products', SITE_BRANCH)).filter(function (f) { return /\.json$/.test(f.name); });
     S.products = await Promise.all(files.map(async function (f) {
       var r = await readJSON(SITE_REPO, f.path, SITE_BRANCH, f.sha);
@@ -408,13 +417,18 @@
     var t = todayKey();
     var cur = paidBetween(addDays(t, -29), t);
     var prev = paidBetween(addDays(t, -59), addDays(t, -30));
+    var today = paidBetween(t, t);
+    var yesterday = paidBetween(addDays(t, -1), addDays(t, -1));
     var w = waiting();
     return '<div class="dash">' +
       '<div class="kpis">' +
-        kpi({ ico: '💰', title: 'Money in', sub: 'Last 30 days', value: naira(money(cur)), trend: trend(money(cur), money(prev)), go: 'money', cls: 'main' }) +
-        kpi({ ico: '🧾', title: 'Sales', sub: 'Last 30 days', value: cur.length, trend: trend(cur.length, prev.length), go: 'money' }) +
-        kpi({ ico: '🧴', title: 'Items sold', sub: 'Last 30 days', value: itemsCount(cur), trend: trend(itemsCount(cur), itemsCount(prev)), go: 'money' }) +
-        kpi({ ico: '🔔', title: 'Waiting orders', sub: w.length ? naira(money(w)) + ' not paid yet' : 'Nothing waiting', value: w.length,
+        (SHOW_MONEY
+          ? kpi({ ico: '💰', title: 'Money in', sub: 'Last 30 days', value: naira(money(cur)), trend: trend(money(cur), money(prev)), go: 'money', cls: 'main' }) +
+            kpi({ ico: '🧾', title: 'Sales', sub: 'Last 30 days', value: cur.length, trend: trend(cur.length, prev.length), go: 'money' })
+          : kpi({ ico: '🧾', title: 'Sales', sub: 'Last 30 days', value: cur.length, trend: trend(cur.length, prev.length), cls: 'main' }) +
+            kpi({ ico: '☀️', title: 'Sold today', sub: 'Items · vs yesterday', value: itemsCount(today), trend: trend(itemsCount(today), itemsCount(yesterday)) })) +
+        kpi({ ico: '🧴', title: 'Items sold', sub: 'Last 30 days', value: itemsCount(cur), trend: trend(itemsCount(cur), itemsCount(prev)), go: SHOW_MONEY ? 'money' : '' }) +
+        kpi({ ico: '🔔', title: 'Waiting orders', sub: w.length ? (SHOW_MONEY ? naira(money(w)) + ' not paid yet' : plural(itemsCount(w), 'item') + ' to confirm') : 'Nothing waiting', value: w.length,
           trend: w.length ? '<span class="trend warn">Tap to see ›</span>' : '<span class="trend up">✓ All done</span>', go: 'orders', cls: w.length ? 'hot' : '' }) +
       '</div>' +
       chartCard() + goalCard() + topProductsCard() + stockCard() +
@@ -430,9 +444,10 @@
     return '<span class="trend ' + (p >= 0 ? 'up' : 'down') + '" title="Compared with the period before">' + (p >= 0 ? '▲ ' : '▼ ') + Math.abs(p) + '%</span>';
   }
   function kpi(o) {
-    return '<button type="button" class="kpi ' + (o.cls || '') + '" data-go="' + o.go + '">' +
+    var tag = o.go ? 'button type="button" data-go="' + o.go + '"' : 'div';
+    return '<' + tag + ' class="kpi ' + (o.cls || '') + (o.go ? '' : ' static') + '">' +
       '<span class="kpi-top"><span><span class="kpi-title">' + esc(o.title) + '</span><span class="kpi-sub">' + esc(o.sub) + '</span></span><span class="kpi-ico">' + o.ico + '</span></span>' +
-      '<span class="kpi-bottom"><span class="kpi-val">' + o.value + '</span>' + (o.trend || '') + '</span></button>';
+      '<span class="kpi-bottom"><span class="kpi-val">' + o.value + '</span>' + (o.trend || '') + '</span></' + (o.go ? 'button' : 'div') + '>';
   }
   function cardHead(title, right) { return '<div class="card-head"><h2>' + title + '</h2>' + (right || '') + '</div>'; }
 
@@ -445,10 +460,10 @@
     else { for (var i = +r - 1; i >= 0; i -= 1) days.push(addDays(t, -i)); }
     var list = paidBetween(days[0], t);
     var prev = paidBetween(addDays(days[0], -days.length), addDays(days[0], -1));
-    var web = function (l) { return money(l.filter(function (o) { return o.source === 'website'; })); };
-    var shop = function (l) { return money(l.filter(function (o) { return o.source !== 'website'; })); };
+    var web = function (l) { return val(l.filter(function (o) { return o.source === 'website'; })); };
+    var shop = function (l) { return val(l.filter(function (o) { return o.source !== 'website'; })); };
     var pts = days.map(function (k) {
-      return { label: shortDate(k), value: money(list.filter(function (o) { return dayKey(paidTime(o)) === k; })) };
+      return { label: shortDate(k), value: val(list.filter(function (o) { return dayKey(paidTime(o)) === k; })) };
     });
     var ranges = [['7', '7 days'], ['30', '30 days'], ['month', MONTHS[+t.slice(5, 7) - 1]]];
     return '<section class="card c-chart">' +
@@ -456,16 +471,17 @@
         return '<button type="button" class="' + (r === x[0] ? 'on' : '') + '" data-act="chart-range" data-id="' + x[0] + '">' + x[1] + '</button>';
       }).join('') + '</div>') +
       '<div class="mini-stats">' +
-        mini('Money in', money(list), money(prev)) +
+        mini(SHOW_MONEY ? 'Money in' : 'Items sold', val(list), val(prev)) +
         mini('🌐 Website', web(list), web(prev)) +
         mini('🏪 In person', shop(list), shop(prev)) +
       '</div>' + areaChart(pts) + '</section>';
   }
   function mini(label, v, p) {
-    return '<div class="mini"><span class="mini-l">' + label + '</span><span class="mini-v">' + naira(v) + '</span>' + trend(v, p) + '</div>';
+    return '<div class="mini"><span class="mini-l">' + label + '</span><span class="mini-v">' + fmt(v) + '</span>' + trend(v, p) + '</div>';
   }
   function shortDate(k) { var d = new Date(k + 'T12:00:00Z'); return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()].slice(0, 3); }
   function niceMax(v) {
+    if (!SHOW_MONEY) return Math.max(4, Math.ceil(v / 4) * 4); // whole numbers on the axis
     if (!(v > 0)) return 10000;
     var p = Math.pow(10, Math.floor(Math.log10(v)));
     var steps = [1, 2, 2.5, 5, 10];
@@ -499,11 +515,11 @@
     var ys = pts.map(function (p) { return H - p.value / max * H; });
     var line = smoothPath(xs, ys);
     var grid = [0, 0.25, 0.5, 0.75, 1].map(function (f) {
-      return '<span class="gy" style="bottom:' + f * 100 + '%"><i>' + (f ? shortNaira(max * f) : '0') + '</i></span>';
+      return '<span class="gy" style="bottom:' + f * 100 + '%"><i>' + (f ? fmtShort(max * f) : '0') + '</i></span>';
     }).join('');
     var step = Math.max(1, Math.ceil(n / 7)); var labels = '';
     for (var i = 0; i < n; i += step) labels += '<span style="left:' + (xs[i] / W * 100).toFixed(2) + '%">' + esc(pts[i].label) + '</span>';
-    return '<div class="area" data-points="' + esc(JSON.stringify(pts.map(function (p) { return [p.label, p.value]; }))) + '" data-max="' + max + '">' +
+    return '<div class="area' + (SHOW_MONEY ? '' : ' items') + '" data-points="' + esc(JSON.stringify(pts.map(function (p) { return [p.label, p.value]; }))) + '" data-max="' + max + '">' +
       '<div class="plot">' + grid +
         '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">' +
         '<stop offset="0" stop-color="#2c5440" stop-opacity="0.32"/><stop offset="1" stop-color="#2c5440" stop-opacity="0.02"/></linearGradient></defs>' +
@@ -520,18 +536,19 @@
       (frac > 0 ? '<circle cx="100" cy="100" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="15" stroke-linecap="round" stroke-dasharray="' +
         (c * Math.min(1, frac)).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 100 100)"/>' : '');
   }
+  var GOAL_KEY = SHOW_MONEY ? 'monthly_target' : 'monthly_goal_items';
   function goalCard() {
-    var goal = Number(S.stock.monthly_target) || 0;
+    var goal = Number(S.stock[GOAL_KEY]) || 0;
     var t = todayKey(); var m = t.slice(0, 7);
-    var monthMoney = money(paidOrders().filter(function (o) { return monthKey(paidTime(o)) === m; }));
-    var dayMoney = money(paidOrders().filter(function (o) { return dayKey(paidTime(o)) === t; }));
+    var monthMoney = val(paidOrders().filter(function (o) { return monthKey(paidTime(o)) === m; }));
+    var dayMoney = val(paidOrders().filter(function (o) { return dayKey(paidTime(o)) === t; }));
     var p = m.split('-'); var nDays = new Date(Date.UTC(+p[0], +p[1], 0)).getUTCDate();
-    var daily = goal ? Math.round(goal / nDays) : 0;
+    var daily = goal ? (SHOW_MONEY ? Math.round(goal / nDays) : Math.ceil(goal / nDays)) : 0;
     var pm = goal ? monthMoney / goal : 0; var pd = daily ? dayMoney / daily : 0;
     var html = '<section class="card c-goal">' + cardHead('Monthly goal', goal ? '<button type="button" class="link-btn" data-act="ask-target">Change</button>' : '') +
       '<div class="goal"><div class="goal-legend">' +
-        '<div><span class="lg"><i style="background:var(--terra)"></i>This month</span><b>' + naira(monthMoney) + '</b>' + (goal ? '<small>of ' + naira(goal) + '</small>' : '') + '</div>' +
-        '<div><span class="lg"><i style="background:var(--forest-2)"></i>Today</span><b>' + naira(dayMoney) + '</b>' + (daily ? '<small>of ' + naira(daily) + ' a day</small>' : '') + '</div>' +
+        '<div><span class="lg"><i style="background:var(--terra)"></i>This month</span><b>' + fmt(monthMoney) + '</b>' + (goal ? '<small>goal: ' + fmt(goal) + '</small>' : '') + '</div>' +
+        '<div><span class="lg"><i style="background:var(--forest-2)"></i>Today</span><b>' + fmt(dayMoney) + '</b>' + (daily ? '<small>goal: ' + fmt(daily) + ' a day</small>' : '') + '</div>' +
       '</div><div class="donut"><svg viewBox="0 0 200 200" aria-hidden="true">' + ring(84, pm, 'var(--terra)') + ring(62, pd, 'var(--forest-2)') + '</svg>' +
         '<span class="donut-mid">' + (goal ? '<b>' + Math.round(pm * 100) + '%</b><small>of goal</small>' : '🎯') + '</span></div></div>';
     if (!goal) html += '<button type="button" class="btn terra small" style="width:100%" data-act="ask-target">🎯 Set a monthly goal</button>';
@@ -555,7 +572,7 @@
     return html + '<div class="prod-row">' + list.map(function (p, i) {
       var left = stockLeft(p.id); var src = imgUrl(p);
       return '<button type="button" class="prod" data-go="stock"><span class="prod-img">' +
-        (src ? '<img src="/' + esc(src) + '" alt="" loading="lazy" onerror="this.onerror=null;this.src=\'' + RAW + esc(src) + '\'">' : '<span class="noimg">🧴</span>') +
+        (src ? '<img ' + imgAttrs(src) + ' alt="" loading="lazy">' : '<span class="noimg">🧴</span>') +
         (i === 0 && sold[p.id] ? '<span class="prod-badge">🏆 Best</span>' : '') + '</span>' +
         '<span class="prod-name">' + esc(pname(p)) + '</span>' +
         '<span class="prod-sub"><b>' + (sold[p.id] || 0) + ' sold</b>' + (left != null ? ' · ' + Math.max(0, left) + ' left' : '') + '</span></button>';
@@ -695,14 +712,14 @@
       var left = stockLeft(p.id);
       var src = imgUrl(p);
       return '<button type="button" class="pick' + (n ? ' on' : '') + '" data-act="pick" data-id="' + esc(p.id) + '" aria-label="Add one ' + esc(pname(p)) + '">' +
-        (src ? '<img src="/' + esc(src) + '" alt="" loading="lazy" onerror="this.onerror=null;this.src=\'' + RAW + esc(src) + '\'">' : '<span class="noimg">🧴</span>') +
+        (src ? '<img ' + imgAttrs(src) + ' alt="" loading="lazy">' : '<span class="noimg">🧴</span>') +
         (n ? '<span class="badge">' + n + '</span><span class="minus" data-act="unpick" data-id="' + esc(p.id) + '" role="button" aria-label="Remove one">−</span>' : '') +
         '<span class="pinfo"><span class="pname">' + esc(pname(p)) + '</span><span class="pprice" style="display:block">' + naira(p.price) + '</span>' +
         (left != null ? '<span class="pleft">' + (left > 0 ? left + ' left' : 'None left') + '</span>' : '') + '</span></button>';
     }).join('') + '</div>';
     var n = basketCount();
     if (n) {
-      html += '<div class="basket"><div class="inner"><span class="sum"><small>' + plural(n, 'item') + '</small><strong>' + naira(basketTotal()) + '</strong></span>' +
+      html += '<div class="basket"><div class="inner"><span class="sum">' + (SHOW_MONEY ? '<small>' + plural(n, 'item') + '</small><strong>' + naira(basketTotal()) + '</strong>' : '<small>You picked</small><strong>' + plural(n, 'item') + '</strong>') + '</span>' +
         '<button type="button" class="btn light small" data-act="clear-basket" aria-label="Start again">✕</button>' +
         '<button type="button" class="btn terra" data-act="sell-next">Next →</button></div></div>';
     }
@@ -713,8 +730,10 @@
   function stockView() {
     var list = sellable();
     var low = lowProducts();
-    if (!list.length) return '<div class="hello"><h1>Stock 📦</h1></div>' + emptyHtml('🧴', 'No products to count yet. Add them in ✏️ Edit shop, then Publish.');
-    var html = '<div class="hello"><h1>Stock 📦</h1><p>' + (low.length ? '⚠️ ' + plural(low.length, 'product') + ' need more stock' : 'How many of each product you have left') + '</p></div>' + publishBanner();
+    var soon = S.products.filter(function (p) { return !p.hidden && (p.status === 'coming-soon' || !(p.price > 0)); }).sort(byOrder);
+    var newBtn = '<button type="button" class="btn terra big new-product" data-act="new-product"><span class="ico">➕</span>Add a new product</button>';
+    if (!list.length && !soon.length) return '<div class="hello"><h1>Stock 📦</h1><p>Your products and how many are left</p></div>' + newBtn + emptyHtml('🧴', 'No products yet. Tap ➕ to add your first one.');
+    var html = '<div class="hello"><h1>Stock 📦</h1><p>' + (low.length ? '⚠️ ' + plural(low.length, 'product') + ' need more stock' : 'How many of each product you have left') + '</p></div>' + publishBanner() + newBtn;
     if (!list.some(function (p) { return stockLeft(p.id) != null; })) {
       html += '<div class="alert green" style="margin:0 0 14px"><span class="ico">👋</span><span>Start here<small>Count what you have on the shelf, then tap ✏️ Count on each product. After that, every sale takes 1 away by itself.</small></span></div>';
     }
@@ -728,9 +747,16 @@
         '</div>' +
         '<div class="stock-btns"><button type="button" class="btn terra small" data-act="ask-add" data-id="' + esc(p.id) + '">➕ Add</button>' +
         '<button type="button" class="btn light small" data-act="ask-count" data-id="' + esc(p.id) + '">✏️ Count</button></div>' +
-        '<button type="button" class="web" data-act="ask-soldout" data-id="' + esc(p.id) + '"><span class="switch' + (p.sold_out ? ' off' : '') + '"></span>' +
-        (p.sold_out ? '<span>Website: <b style="color:var(--red)">Sold out</b></span>' : '<span>Website: <b style="color:var(--green)">Can be ordered</b></span>') + '</button>' + '</div>';
+        '<div class="row-foot"><button type="button" class="web" data-act="ask-soldout" data-id="' + esc(p.id) + '"><span class="switch' + (p.sold_out ? ' off' : '') + '"></span>' +
+        (p.sold_out ? '<span>Website: <b style="color:var(--red)">Sold out</b></span>' : '<span>Website: <b style="color:var(--green)">On sale</b></span>') + '</button>' +
+        '<button type="button" class="edit-link" data-act="edit-product" data-id="' + esc(p.id) + '">📝 Edit details</button></div></div>';
     }).join('');
+    if (soon.length) {
+      html += '<div class="section-title"><h2>Coming soon</h2><small>Not for sale yet</small></div>' + soon.map(function (p) {
+        return '<div class="stock-row">' + thumb(p) + '<div class="info"><div class="name">' + esc(pname(p)) + '</div><span class="left-num none">⏳ Coming soon</span></div>' +
+          '<div class="stock-btns"><button type="button" class="btn light small" data-act="edit-product" data-id="' + esc(p.id) + '">📝 Edit</button></div></div>';
+      }).join('');
+    }
     html += '<button type="button" class="btn light" style="width:100%;margin-top:6px" data-act="ask-low">⚠️ Warn me when only ' + lowAlert() + ' are left</button>';
     return html;
   }
@@ -786,11 +812,15 @@
 
   // ============================================================ pop-up sheets
   function openSheet(state) { S.sheet = state; drawSheet(); sheetWrap.hidden = false; }
-  function closeSheet() { S.sheet = null; sheetWrap.hidden = true; sheetEl.innerHTML = ''; }
+  function closeSheet() { S.sheet = null; sheetWrap.hidden = true; sheetEl.innerHTML = ''; sheetEl.dataset.type = ''; }
   function drawSheet() {
     var s = S.sheet; if (!s) return;
     var fn = SHEETS[s.type];
+    var keep = sheetEl.dataset.type === s.type ? sheetEl.scrollTop : 0;
+    sheetEl.dataset.type = s.type;
+    sheetEl.classList.toggle('wide', s.type === 'product');
     sheetEl.innerHTML = '<div class="grab"></div>' + fn(s);
+    sheetEl.scrollTop = keep;
     var f = sheetEl.querySelector('[autofocus]');
     if (f && window.matchMedia('(min-width: 600px)').matches) f.focus();
   }
@@ -840,20 +870,20 @@
     checkout: function (s) {
       var lines = Object.keys(S.basket).map(function (id) {
         var p = product(id);
-        return '<div class="order-item">' + thumb(p, 'sm') + '<span>' + S.basket[id] + ' × ' + esc(pname(p)) + '</span><b>' + naira(p.price * S.basket[id]) + '</b></div>';
+        return '<div class="order-item">' + thumb(p, 'sm') + '<span>' + S.basket[id] + ' × ' + esc(pname(p)) + '</span>' + (SHOW_MONEY ? '<b>' + naira(p.price * S.basket[id]) + '</b>' : '') + '</div>';
       }).join('');
       var methods = [['Cash', '💵'], ['Transfer', '🏦'], ['POS', '💳']];
       return '<h2>Almost done!</h2><div class="card" style="margin:10px 0 4px">' + lines + '</div>' +
         '<div class="field"><span>How did they pay?</span><div class="choices">' + methods.map(function (m) {
           return '<button type="button" class="choice' + (s.method === m[0] ? ' on' : '') + '" data-act="method" data-id="' + m[0] + '"><span class="ico">' + m[1] + '</span>' + m[0] + '</button>';
         }).join('') + '</div></div>' +
-        '<label class="field"><span>Money received (₦)</span><input id="sellAmount" inputmode="numeric" value="' + esc(Number(s.amount).toLocaleString('en-NG')) + '"></label>' +
+        (SHOW_MONEY ? '<label class="field"><span>Money received (₦)</span><input id="sellAmount" inputmode="numeric" value="' + esc(Number(s.amount).toLocaleString('en-NG')) + '"></label>' : '') +
         '<label class="field"><span>Customer name <small class="muted">(you can skip this)</small></span><input id="sellName" autocomplete="off" value="' + esc(s.name || '') + '"></label>' +
         '<div class="stack"><button type="button" class="btn green big" data-act="do-sell"' + (S.busy ? ' disabled' : '') + '><span class="ico">✅</span>' + (S.busy ? 'Saving…' : 'Save sale') + '</button>' +
         '<button type="button" class="btn light big" data-act="close-sheet">← Back</button></div>';
     },
     sold: function (s) {
-      return '<div class="big-emoji">🎉</div><h2>Sale saved!</h2><p class="lead">' + naira(s.amount) + ' added to your money for today.</p>' +
+      return '<div class="big-emoji">🎉</div><h2>Sale saved!</h2><p class="lead">' + (SHOW_MONEY ? naira(s.amount) + ' added to your money for today.' : plural(s.items, 'item') + ' added to today’s sales. Stock has been updated.') + '</p>' +
         '<div class="stack"><button type="button" class="btn terra big" data-act="close-sheet">🛒 Sell more</button>' +
         '<button type="button" class="btn light big" data-act="go-home">🏠 Home</button></div>';
     },
@@ -890,18 +920,225 @@
         '<button type="button" class="btn light big" data-act="close-sheet">Cancel</button></div>';
     },
     target: function (s) {
-      return '<div class="big-emoji">🎯</div><h2>Monthly goal</h2><p class="lead">How much money do you want to make each month?</p>' +
-        '<label class="field"><span>Goal for the month (₦)</span><input id="goalAmount" inputmode="numeric" value="' + esc(Number(s.amount).toLocaleString('en-NG')) + '" autofocus></label>' +
-        '<div class="chips" style="margin-top:12px">' + [300000, 500000, 1000000, 2000000].map(function (n) {
-          return '<button type="button" data-act="goal-chip" data-id="' + n + '">' + shortNaira(n) + '</button>'; }).join('') + '</div>' +
+      return '<div class="big-emoji">🎯</div><h2>Monthly goal</h2><p class="lead">' + (SHOW_MONEY ? 'How much money do you want to make each month?' : 'How many items do you want to sell each month?') + '</p>' +
+        '<label class="field"><span>' + (SHOW_MONEY ? 'Goal for the month (₦)' : 'Items to sell this month') + '</span><input id="goalAmount" inputmode="numeric" value="' + esc(Number(s.amount).toLocaleString('en-NG')) + '" autofocus></label>' +
+        '<div class="chips" style="margin-top:12px">' + (SHOW_MONEY ? [300000, 500000, 1000000, 2000000] : [50, 100, 200, 500]).map(function (n) {
+          return '<button type="button" data-act="goal-chip" data-id="' + n + '">' + fmtShort(n) + '</button>'; }).join('') + '</div>' +
         '<div class="stack"><button type="button" class="btn green big" data-act="do-target"' + (S.busy ? ' disabled' : '') + '><span class="ico">✅</span>' + (S.busy ? 'Saving…' : 'Save goal') + '</button>' +
         '<button type="button" class="btn light big" data-act="close-sheet">Cancel</button></div>';
+    },
+    product: productSheet,
+    productSaved: function (s) {
+      var p = product(s.id);
+      return '<div style="display:flex;justify-content:center">' + thumb(p) + '</div><div class="big-emoji" style="font-size:2.4rem;margin-top:6px">✅</div>' +
+        '<h2>' + (s.isNew ? 'Product added!' : 'Changes saved!') + '</h2>' +
+        '<p class="lead"><b>' + esc(pname(p)) + '</b> shows on the website after you <b>Publish</b>. Publish once when you’ve finished all your changes.</p>' +
+        '<div class="stack"><button type="button" class="btn terra big" data-act="publish">🚀 Publish now</button>' +
+        '<button type="button" class="btn light big" data-act="close-sheet">Later</button></div>';
     },
     published: function (s) {
       return '<div class="big-emoji">' + (s.ok ? '🚀' : '📶') + '</div><h2>' + esc(s.title) + '</h2><p class="lead">' + esc(s.detail) + '</p>' +
         '<div class="stack"><button type="button" class="btn forest big" data-act="close-sheet">OK</button></div>';
     },
   };
+
+  // ============================================================ product form (add a new product / edit one)
+  function cleanPath(p) { return String(p || '').replace(/^\/+/, ''); }
+  function imgAttrs(path) {
+    path = cleanPath(path);
+    if (S.localImages[path]) return 'src="' + S.localImages[path] + '"';
+    return 'src="/' + esc(path) + '" onerror="this.onerror=null;this.src=\'' + RAW + esc(path) + '\'"';
+  }
+  function slugify(name) {
+    var s = String(name || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+    return s || 'product';
+  }
+  function uniqueId(name) {
+    var base = slugify(name); var id = base; var n = 2;
+    while (product(id)) { id = base + '-' + n; n += 1; }
+    return id;
+  }
+  function catName(id) { var c = S.categories.find(function (x) { return x.id === id; }); return c ? c.name : ''; }
+
+  function productForm(p) {
+    p = p || {};
+    var gal = (Array.isArray(p.gallery) ? p.gallery : []).map(function (g) { return { path: typeof g === 'object' && g ? g.photo : g }; })
+      .filter(function (g) { return g.path; });
+    return {
+      p: {
+        name: p.name || '', title: p.title || '', category: p.category || '', label: p.label || '',
+        status: p.status === 'coming-soon' ? 'coming-soon' : 'available', price: p.price ? String(p.price) : '',
+        size: p.size || '', badge: p.badge || '', image_alt: p.image_alt || '', card_text: p.card_text || '',
+        description: p.description || '', ingredients: p.ingredients || '', how_to_use: p.how_to_use || '',
+        keywords: p.keywords || '', review_text: p.review_text || '', review_name: p.review_name || '', qty: '',
+      },
+      photo: p.image ? { path: p.image } : null,
+      gallery: gal,
+    };
+  }
+  function keepForm() {
+    if (!S.sheet || !S.sheet.p) return;
+    sheetEl.querySelectorAll('[data-f]').forEach(function (el) { S.sheet.p[el.dataset.f] = el.value; });
+  }
+  function pf(k, label, o) {
+    o = o || {};
+    var v = S.sheet.p[k]; v = v == null ? '' : v;
+    var input = o.area
+      ? '<textarea data-f="' + k + '" rows="' + (o.rows || 3) + '" placeholder="' + esc(o.ph || '') + '">' + esc(v) + '</textarea>'
+      : '<input data-f="' + k + '"' + (o.num ? ' inputmode="numeric"' : '') + ' autocomplete="off" value="' + esc(v) + '" placeholder="' + esc(o.ph || '') + '">';
+    return '<label class="field"><span>' + label + (o.req ? ' <b class="req">*</b>' : '') + (o.hint ? ' <small class="muted">' + o.hint + '</small>' : '') + '</span>' + input + '</label>';
+  }
+  function chipRow(k, options) {
+    return '<div class="pchips">' + options.map(function (o) {
+      return '<button type="button" class="' + (String(S.sheet.p[k]) === String(o[0]) ? 'on' : '') + '" data-act="pf-set" data-k="' + k + '" data-v="' + esc(o[0]) + '">' + o[1] + '</button>';
+    }).join('') + '</div>';
+  }
+  function formSec(n, title, note) {
+    return '<div class="form-sec"><span class="num">' + n + '</span><div><h3>' + title + '</h3>' + (note ? '<small>' + note + '</small>' : '') + '</div></div>';
+  }
+  function photoImg(ph) { return ph.data ? 'src="' + ph.src + '"' : imgAttrs(ph.path); }
+
+  function productSheet(s) {
+    var isNew = s.mode === 'new';
+    var html = '<h2>' + (isNew ? '➕ New product' : '📝 Edit product') + '</h2><p class="lead">Fill in what you know. Things marked <b class="req">*</b> are needed.</p>';
+
+    html += formSec(1, 'Photos', 'A clear photo with the product in the middle looks best') +
+      '<div class="photo-pick">' +
+        (s.photo ? '<img ' + photoImg(s.photo) + ' alt=""><button type="button" class="photo-x" data-act="photo-remove" aria-label="Remove photo">✕</button>' : '') +
+        '<label class="photo-add' + (s.photo ? ' small' : '') + '"><span class="ico">📷</span><span>' + (s.photo ? 'Change' : 'Add the main photo') + '</span>' +
+        '<input type="file" accept="image/*" data-photo="main" hidden></label>' +
+      '</div>' +
+      '<div class="gallery">' + s.gallery.map(function (g, i) {
+        return '<span class="g-item"><img ' + photoImg(g) + ' alt=""><button type="button" data-act="gallery-remove" data-id="' + i + '" aria-label="Remove">✕</button></span>';
+      }).join('') +
+      '<label class="g-add"><span>＋</span><small>More photos</small><input type="file" accept="image/*" multiple data-photo="gallery" hidden></label></div>';
+
+    html += formSec(2, 'Name and price') +
+      pf('name', 'Product name', { req: true, ph: 'e.g. Herbal Infused Oil', hint: isNew ? '' : '(avoid changing it once people have ordered)' }) +
+      pf('price', 'Price (₦)', { req: S.sheet.p.status !== 'coming-soon', num: true, ph: 'e.g. 20000' }) +
+      pf('size', 'Size', { ph: 'e.g. 100ml dropper bottle, 300g jar' });
+
+    html += formSec(3, 'Category', 'Where it shows in the shop') +
+      (S.categories.length ? chipRow('category', S.categories.map(function (c) { return [c.id, c.name]; })) : '<p class="muted">No categories yet. Add them in ✏️ Edit products → Shop settings.</p>');
+
+    html += formSec(4, 'Can people buy it now?') +
+      chipRow('status', [['available', '✅ Yes, ready to sell'], ['coming-soon', '⏳ Coming soon']]) +
+      '<div class="field"><span>Label on the photo</span>' + chipRow('badge', [['', 'None'], ['Bestseller', '🏆 Bestseller'], ['New', '✨ New'], ['Sale', '🏷️ Sale']]) + '</div>';
+
+    html += formSec(5, 'Words on the website') +
+      pf('card_text', 'Short line on the product card', { ph: 'e.g. Lightweight scalp & strand oil with botanical extracts.', hint: '(one line)' }) +
+      pf('description', 'Description', { area: true, rows: 4, ph: 'What it is and what it does. Leave an empty line between paragraphs.' }) +
+      pf('ingredients', 'Ingredients', { area: true, rows: 3, ph: 'From the label' }) +
+      pf('how_to_use', 'How to use', { area: true, rows: 3, ph: 'From the label' });
+
+    html += formSec(6, 'Extras', 'You can skip these') +
+      pf('title', 'Shorter name for the card', { ph: 'e.g. Herbal Bloom Hair Butter' }) +
+      pf('label', 'Small word above the name', { ph: catName(S.sheet.p.category) ? 'e.g. ' + catName(S.sheet.p.category).replace(/s$/, '') : 'e.g. Hair Oil' }) +
+      pf('keywords', 'Search words', { area: true, rows: 2, ph: 'e.g. dandruff dry curls frizz growth', hint: '(words customers might type)' }) +
+      pf('review_text', 'A customer review', { area: true, rows: 2 }) +
+      pf('review_name', 'Who said it', { ph: 'e.g. Amara O.' });
+
+    if (isNew) {
+      html += formSec(7, 'How many do you have now?', 'For the stock count. Leave empty if you don’t know yet') +
+        pf('qty', 'Number in stock', { num: true, ph: 'e.g. 24' });
+    }
+
+    html += '<div class="sheet-save"><button type="button" class="btn green big" data-act="do-product"' + (S.busy ? ' disabled' : '') + '><span class="ico">✅</span>' +
+      (S.busy ? (s.progress || 'Saving…') : isNew ? 'Save new product' : 'Save changes') + '</button>' +
+      '<button type="button" class="btn light" data-act="close-sheet">Cancel</button></div>';
+    return html;
+  }
+
+  function resizeImage(file) {
+    return new Promise(function (ok, bad) {
+      var url = URL.createObjectURL(file); var img = new Image();
+      img.onload = function () {
+        var k = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+        var ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        var d = c.toDataURL('image/jpeg', 0.85);
+        ok({ src: d, data: d.split(',')[1] });
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); bad(new Error('This photo could not be opened. Please try another one.')); };
+      img.src = url;
+    });
+  }
+  sheetEl.addEventListener('change', function (e) {
+    var input = e.target; var which = input.dataset && input.dataset.photo;
+    if (!which || !S.sheet || !S.sheet.p) return;
+    keepForm();
+    var files = Array.prototype.slice.call(input.files || []);
+    Promise.all(files.map(resizeImage)).then(function (list) {
+      if (!S.sheet) return;
+      if (which === 'main') S.sheet.photo = list[0] || S.sheet.photo;
+      else S.sheet.gallery = S.sheet.gallery.concat(list);
+      drawSheet();
+    }).catch(function (err) { alert(err.message); });
+  });
+
+  async function uploadPhoto(id, n, ph) {
+    var path = 'images/uploads/' + id + (n > 1 ? '-' + n : '') + '-' + Date.now().toString(36) + '.jpg';
+    S.localImages[path] = ph.src;
+    if (!DEMO) {
+      var r = await gh(SITE_REPO, 'contents/' + path, { method: 'PUT', body: JSON.stringify({ message: 'Admin: upload "' + path + '" [skip netlify]', content: ph.data, branch: SITE_BRANCH }) });
+      if (!r.ok) throw HttpError(r.status, 'A photo could not be uploaded. Please try again.');
+    }
+    return '/' + path;
+  }
+
+  async function saveProduct(s) {
+    var p = s.p; var isNew = s.mode === 'new';
+    var name = p.name.trim();
+    var price = Number(digits(p.price)) || 0;
+    var id = isNew ? uniqueId(name) : s.id;
+    var n = 0;
+    var progress = function (t) { s.progress = t; drawSheet(); };
+    var image = '';
+    if (s.photo) {
+      if (s.photo.data) { progress('Uploading photo…'); image = await uploadPhoto(id, ++n, s.photo); } else image = s.photo.path;
+    }
+    var gallery = [];
+    for (var i = 0; i < s.gallery.length; i += 1) {
+      var g = s.gallery[i];
+      if (g.data) { progress('Uploading photo ' + (i + 2) + '…'); gallery.push(await uploadPhoto(id, ++n, g)); } else gallery.push(g.path);
+    }
+    progress('Saving…');
+    var title = p.title.trim();
+    var fields = {
+      name: name, title: title, category: p.category, label: p.label.trim(),
+      status: p.status, price: price || '', size: p.size.trim(), badge: p.badge, image: image,
+      image_alt: p.image_alt.trim() || ('NELVA ' + (title || name) + (p.size.trim() ? ', ' + p.size.trim() : '')),
+      gallery: gallery, card_text: p.card_text.trim() || (p.description.trim().split('\n')[0].split('. ')[0] || '').slice(0, 140),
+      description: p.description.trim(), ingredients: p.ingredients.trim(), how_to_use: p.how_to_use.trim(),
+      keywords: p.keywords.trim(), review_text: p.review_text.trim(), review_name: p.review_name.trim(),
+    };
+    var saved = await writeJSON(SITE_REPO, 'content/products/' + id + '.json', function (d) {
+      if (isNew && d) throw new Error('A product with this name already exists. Please use another name.');
+      var out = isNew ? {} : (d || {});
+      Object.keys(fields).forEach(function (k) {
+        var v = fields[k];
+        if (v === '' || (Array.isArray(v) && !v.length)) delete out[k]; else out[k] = v;
+      });
+      if (isNew) {
+        out.sold_out = false; out.hidden = false;
+        out.order = S.products.reduce(function (m, x) { return Math.max(m, Number(x.order) || 0); }, 0) + 10;
+      }
+      return out;
+    }, 'Admin: ' + (isNew ? 'add' : 'update') + ' products "' + id + '" [skip netlify]', SITE_BRANCH);
+
+    var qty = Number(digits(p.qty));
+    if (isNew && p.qty !== '' && qty >= 0) {
+      await changeStock(function (d) { d.entries.push({ date: new Date().toISOString(), id: id, type: 'count', qty: qty }); }, 'Stock: counted ' + qty + ' ' + name);
+    }
+    saved.id = id; saved.price = Number(saved.price) || 0;
+    S.products = S.products.filter(function (x) { return x.id !== id; }).concat([saved]);
+    setUnpublished(true);
+    return { id: id, isNew: isNew };
+  }
 
   // ============================================================ saving
   async function saving(fn) {
@@ -949,7 +1186,13 @@
     retry: function () { start(); },
     refresh: function () { refresh(false); },
     menu: function () { openSheet({ type: 'menu' }); },
-    'close-sheet': closeSheet,
+    'close-sheet': function () {
+      if (S.sheet && S.sheet.type === 'product' && !S.busy) {
+        keepForm();
+        if (!confirm('Close without saving? What you typed will be lost.')) return;
+      }
+      closeSheet();
+    },
     'go-home': function () { closeSheet(); go('home'); },
     publish: function () {
       closeSheet();
@@ -962,14 +1205,36 @@
     },
     'goal-chip': function (el) { S.sheet.amount = Number(el.dataset.id); drawSheet(); },
     'chart-range': function (el) { S.chartRange = el.dataset.id; render(); },
-    'ask-target': function () { openSheet({ type: 'target', amount: Number(S.stock.monthly_target) || 500000 }); },
+    'ask-target': function () { openSheet({ type: 'target', amount: Number(S.stock[GOAL_KEY]) || (SHOW_MONEY ? 500000 : 100) }); },
     'do-target': function () {
       var a = document.getElementById('goalAmount'); var v = Number(digits(a && a.value));
-      if (!(v > 0)) { alert('Please type an amount, e.g. 500000'); return; }
+      if (!(v > 0)) { alert(SHOW_MONEY ? 'Please type an amount, e.g. 500000' : 'Please type a number, e.g. 100'); return; }
       S.sheet.amount = v;
       saving(function () {
-        return changeStock(function (d) { d.monthly_target = v; }, 'Monthly goal: ' + naira(v))
+        return changeStock(function (d) { d[GOAL_KEY] = v; }, 'Monthly goal: ' + fmt(v))
           .then(function () { closeSheet(); toast('Goal saved 🎯'); render(); });
+      });
+    },
+    'new-product': function () {
+      var f = productForm(); f.type = 'product'; f.mode = 'new'; openSheet(f);
+    },
+    'edit-product': function (el) {
+      var f = productForm(product(el.dataset.id)); f.type = 'product'; f.mode = 'edit'; f.id = el.dataset.id; openSheet(f);
+    },
+    'pf-set': function (el) { keepForm(); S.sheet.p[el.dataset.k] = el.dataset.v; drawSheet(); },
+    'photo-remove': function () { keepForm(); S.sheet.photo = null; drawSheet(); },
+    'gallery-remove': function (el) { keepForm(); S.sheet.gallery.splice(+el.dataset.id, 1); drawSheet(); },
+    'do-product': function () {
+      keepForm();
+      var s = S.sheet; var p = s.p;
+      if (!p.name.trim()) { alert('Please type the product name.'); return; }
+      if (!p.category) { alert('Please choose a category (number 3).'); return; }
+      if (p.status !== 'coming-soon' && !(Number(digits(p.price)) > 0)) { alert('Please type the price, e.g. 20000.\n\nNot ready to sell yet? Choose “Coming soon” (number 4).'); return; }
+      saving(function () {
+        return saveProduct(s).then(function (r) {
+          render();
+          openSheet({ type: 'productSaved', id: r.id, isNew: r.isNew });
+        });
       });
     },
     'orders-tab': function (el) { S.ordersTab = el.dataset.id; render(); },
@@ -989,7 +1254,7 @@
       var o = order(el.dataset.id); var now = new Date().toISOString();
       saving(function () {
         return changeOrder(o, function (t) { t.status = 'paid'; t.paid_at = now; }, 'Order ' + o.id + ': paid (' + naira(o.total) + ')')
-          .then(function () { closeSheet(); toast('Money recorded! 🎉'); render(); });
+          .then(function () { closeSheet(); toast('Marked as paid 🎉'); render(); });
       });
     },
     'do-unpaid': function (el) {
@@ -1018,14 +1283,16 @@
       keepInputs();
       var s = S.sheet;
       var amount = Number(digits(s.amount));
+      if (!SHOW_MONEY) amount = basketTotal();
       if (!(amount > 0)) { alert('Please type how much money you received.'); return; }
+      var count = basketCount();
       var now = new Date().toISOString();
       var items = Object.keys(S.basket).map(function (id) { var p = product(id); return { id: id, name: p.name, qty: S.basket[id], price: p.price }; });
       var o = { id: newId('S'), date: now, paid_at: now, source: 'shop', method: s.method, status: 'paid', items: items, total: amount, customer: { name: (s.name || '').trim() } };
       saving(function () {
         return addOrder(o).then(function () {
           S.basket = {}; render();
-          openSheet({ type: 'sold', amount: amount });
+          openSheet({ type: 'sold', amount: amount, items: count });
         });
       });
     },
@@ -1083,7 +1350,7 @@
   }
   window.addEventListener('hashchange', function () {
     var v = location.hash.slice(1);
-    if (!/^(home|orders|sell|stock|money)$/.test(v)) v = 'home';
+    if (!VIEWS.test(v)) v = 'home';
     closeSheet();
     S.view = v; render(); window.scrollTo(0, 0);
   });
@@ -1096,7 +1363,7 @@
     var fn = ACTIONS[a.dataset.act];
     if (fn) { e.preventDefault(); fn(a, e); }
   });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && S.sheet && !S.busy) closeSheet(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && S.sheet && !S.busy) ACTIONS['close-sheet'](); });
   sheetEl.addEventListener('input', function (e) {
     if (e.target.id === 'sellAmount' || e.target.id === 'goalAmount') {
       var n = digits(e.target.value);
@@ -1117,7 +1384,7 @@
     dot.style.left = x + '%'; dot.style.bottom = y + '%';
     tip.style.left = x + '%'; tip.style.bottom = Math.min(y, 70) + '%';
     tip.style.transform = 'translate(' + (x > 80 ? '-100%' : x < 20 ? '0' : '-50%') + ', -14px)';
-    tip.innerHTML = '<b>' + naira(pts[i][1]) + '</b>' + esc(pts[i][0]);
+    tip.innerHTML = '<b>' + fmt(pts[i][1]) + '</b>' + esc(pts[i][0]);
     plot.classList.add('hover');
   }
   document.addEventListener('pointermove', chartTip);
@@ -1135,7 +1402,7 @@
     try {
       if (!(await checkSalesAccess())) { showNoAccess(); return; }
       var v = location.hash.slice(1);
-      S.view = /^(home|orders|sell|stock|money)$/.test(v) ? v : 'home';
+      S.view = VIEWS.test(v) ? v : 'home';
       await refresh(true);
     } catch (e) {
       if (e.status !== 401) showError(e);
@@ -1149,11 +1416,13 @@
     var seed = 7;
     function rnd() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
     var prods = {
-      'herbal-oil': { name: 'Herbal Infused Oil', status: 'available', price: 20000, image: '/images/product-herbal-oil.jpg', order: 10 },
+      'herbal-oil': { name: 'Herbal Infused Oil', category: 'hair-oils', size: '100ml dropper bottle', description: 'A lightweight scalp and strand oil infused with botanical extracts.', status: 'available', price: 20000, image: '/images/product-herbal-oil.jpg', order: 10 },
       'herbal-bloom': { name: 'Herbal Bloom Moisturizing Hair Butter', title: 'Herbal Bloom Hair Butter', status: 'available', price: 25000, image: '/images/product-herbal-bloom.jpg', order: 20 },
       'cleansing-shampoo': { name: 'Cleansing Shampoo', status: 'coming-soon', order: 30 },
     };
     Object.keys(prods).forEach(function (id) { files[SITE_REPO + ':content/products/' + id + '.json'] = prods[id]; });
+    files[SITE_REPO + ':content/categories.json'] = { categories: [
+      { id: 'shampoos', name: 'Shampoos' }, { id: 'conditioners', name: 'Conditioners' }, { id: 'hair-oils', name: 'Hair Oils' }, { id: 'treatments', name: 'Treatments' }] };
     var now = Date.now(); var orders = [];
     var names = ['Amara O.', 'Tolu A.', 'Chioma E.', 'Funmi B.', 'Ngozi K.', 'Kemi S.', 'Ada N.'];
     for (var d = 45; d >= 0; d -= 1) {
@@ -1180,7 +1449,7 @@
       files[f] = files[f] || { orders: [] };
       files[f].orders.push(o);
     });
-    files[SALES_REPO + ':stock.json'] = { low_alert: 5, monthly_target: 1000000, entries: [
+    files[SALES_REPO + ':stock.json'] = { low_alert: 5, monthly_target: 1000000, monthly_goal_items: 80, entries: [
       { date: new Date(now - 50 * 864e5).toISOString(), id: 'herbal-oil', type: 'count', qty: 80 },
       { date: new Date(now - 50 * 864e5).toISOString(), id: 'herbal-bloom', type: 'count', qty: 26 },
     ] };
