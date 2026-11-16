@@ -602,7 +602,7 @@
       return '<div class="level"><div class="level-top"><span>' + esc(pname(p)) + '</span><b class="' + st + '">' +
         (n == null ? 'Not counted' : n <= 0 ? 'None left' : n + ' left') + '</b></div>' +
         '<div class="level-bar ' + st + '"><i style="width:' + (n > 0 ? Math.max(3, n / max * 100) : 0).toFixed(1) + '%"></i></div></div>';
-    }).join('') + '</div><p class="level-note">⚠️ Warns you at ' + lowAlert() + ' left</p></section>';
+    }).join('') + '</div><p class="level-note">⚠️ At ' + lowAlert() + ' or fewer: you get a warning and the website shows “🔥 Only ' + lowAlert() + ' left”</p></section>';
   }
 
   function emptyHtml(ico, text) { return '<div class="empty"><span class="ico">' + ico + '</span>' + esc(text) + '</div>'; }
@@ -785,7 +785,7 @@
           '<div class="stock-btns"><button type="button" class="btn light small" data-act="edit-product" data-id="' + esc(p.id) + '">📝 Edit</button></div></div>';
       }).join('');
     }
-    html += '<button type="button" class="btn light" style="width:100%;margin-top:6px" data-act="ask-low">⚠️ Warn me when only ' + lowAlert() + ' are left</button>';
+    html += '<button type="button" class="btn light low-btn" data-act="ask-low">⚠️ Running low at ' + lowAlert() + ' or fewer<small>You get a warning here, and the website shows “🔥 Only 3 left” to customers</small></button>';
     return html;
   }
 
@@ -932,7 +932,7 @@
         '<button type="button" class="btn light big" data-act="close-sheet">Cancel</button></div>';
     },
     low: function (s) {
-      return '<div class="big-emoji">⚠️</div><h2>Running-low warning</h2><p class="lead">Warn me when this many (or fewer) are left:</p>' + stepper() +
+      return '<div class="big-emoji">⚠️</div><h2>Running low</h2><p class="lead">When a product gets down to this many (or fewer):<br>• you get a warning here<br>• the website shows <b>“🔥 Only 3 left”</b> so customers hurry</p>' + stepper() +
         '<div class="stack"><button type="button" class="btn green big" data-act="do-low"' + (S.busy ? ' disabled' : '') + '><span class="ico">✅</span>' + (S.busy ? 'Saving…' : 'Save') + '</button>' +
         '<button type="button" class="btn light big" data-act="close-sheet">Cancel</button></div>';
     },

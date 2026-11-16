@@ -602,6 +602,41 @@ if (checkoutGrid) {
   renderCheckout();
 }
 
+// ============================================
+// "Only 3 left" badges: products running low (netlify/functions/stock.js).
+// The function only lists products with a few left (the owner sets how few in /admin);
+// if it can't be reached, nothing is shown.
+// ============================================
+(function showRunningLow() {
+  const cards = document.querySelectorAll('.product-card[data-name]');
+  const detail = document.querySelector('.product-detail[data-name]');
+  if (!cards.length && !detail) return;
+  fetch('/.netlify/functions/stock')
+    .then((r) => (r.ok ? r.json() : null))
+    .then((data) => {
+      const low = (data && data.low) || {};
+      cards.forEach((card) => {
+        const n = low[card.dataset.name];
+        const btn = card.querySelector('.add-cart-btn');
+        if (!n || (btn && btn.disabled) || card.querySelector('.stock-flag')) return;
+        const flag = document.createElement('span');
+        flag.className = 'stock-flag';
+        flag.textContent = `Only ${n} left`;
+        const photo = card.querySelector('.product-photo');
+        if (photo) photo.appendChild(flag);
+      });
+      if (detail && low[detail.dataset.name] && !detail.querySelector('.pd-stock-flag')) {
+        const n = low[detail.dataset.name];
+        const line = document.createElement('p');
+        line.className = 'pd-stock-flag';
+        line.textContent = `🔥 Running out: only ${n} left`;
+        const row = detail.querySelector('.pd-price-row');
+        if (row) row.insertAdjacentElement('afterend', line);
+      }
+    })
+    .catch(() => { /* no badges */ });
+})();
+
 // Newsletter form — subscribes to the Brevo "NELVA Circle" list
 const NEWSLETTER_ENDPOINT = 'https://2cbd7937.sibforms.com/serve/MUIFABs4sDSvLxYcI2hqrOUXyGERn3aBtb1Scu1pXLN2hijERlT_2QahfJtc8YQ1IRa9FXTceXBudWLUvSvzs2v9zgUnaUZiIm5YL9myWgHnHn6Hws1ZjLIZ0WwDhnn-uyzp0Vlb7Lh9jfGw_vqPNZrx87uYocbCuEHGNL62iQU6TimqMhGe8aUWIHJrEp1jfT1mJFHSbik9GkIhMA==';
 const newsletterForm = document.getElementById('newsletterForm');

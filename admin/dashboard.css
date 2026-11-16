@@ -503,3 +503,5 @@ h1, h2, h3 { margin: 0; }
 .stock-row .row-foot .web { min-height: 44px; }
 .edit-link { padding: 11px 12px; }
 .kpi-sub, .trend { font-size: 0.78rem; }
+.low-btn { width: 100%; margin-top: 6px; flex-direction: column; gap: 2px; }
+.low-btn small { font-weight: 400; font-size: 0.8rem; color: var(--muted); }
