@@ -483,3 +483,23 @@ h1, h2, h3 { margin: 0; }
 .sheet-save { position: sticky; bottom: 0; display: grid; grid-template-columns: 1fr auto; gap: 10px; margin: 24px -18px 0; padding: 12px 18px calc(14px + env(safe-area-inset-bottom)); background: var(--cream); border-top: 1px solid var(--line); }
 .sheet-save .btn.big { min-height: 58px; }
 .chips button.on { background: var(--terra-soft); color: var(--terra-2); }
+
+/* ---------- saved note, sold-out prompt, order search ---------- */
+.save-steps { display: grid; gap: 8px; margin: 4px 0 6px; }
+.save-steps div { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 14px; padding: 10px 14px; font-size: 0.92rem; box-shadow: var(--shadow); }
+.save-steps b:first-child { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--forest); color: #fff; display: grid; place-items: center; font-size: 0.85rem; }
+.prompt-thumbs { display: flex; justify-content: center; gap: 8px; }
+.stock-row .row-warn { flex-basis: 100%; text-align: left; background: var(--red-soft); color: var(--red); font-size: 0.86rem; font-weight: 600; padding: 10px 12px; border-radius: 12px; line-height: 1.35; }
+.search { display: flex; align-items: center; gap: 10px; background: #fff; border: 2px solid var(--line); border-radius: 16px; padding: 0 8px 0 14px; margin-bottom: 12px; }
+.search:focus-within { border-color: var(--terra); }
+.search input { flex: 1; min-width: 0; border: 0; outline: none; background: none; font-size: 1rem; padding: 14px 0; }
+.search input::-webkit-search-cancel-button { display: none; }
+.search-x { width: 40px; height: 40px; border-radius: 50%; background: var(--grey-soft); font-weight: 700; }
+.search-note { margin: 0 0 10px; color: var(--muted); font-size: 0.88rem; }
+.seg button.dim { opacity: 0.45; }
+/* bigger touch targets and text (from the check) */
+.range button { padding: 9px 12px; }
+.link-btn { padding: 10px 6px; }
+.stock-row .row-foot .web { min-height: 44px; }
+.edit-link { padding: 11px 12px; }
+.kpi-sub, .trend { font-size: 0.78rem; }

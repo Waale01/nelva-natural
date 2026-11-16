@@ -276,7 +276,8 @@
     try {
       await Promise.all([loadProducts(), loadSales()]);
       S.loaded = true;
-      if (!S.sheet) render();
+      var typing = document.activeElement && document.activeElement.id === 'orderSearch';
+      if (!S.sheet && !typing) render();
       else updateDots();
       if (!quiet) toast('Up to date ✓');
     } catch (e) {
@@ -413,7 +414,7 @@
 
   function publishBanner() {
     if (!getUnpublished()) return '';
-    return '<div class="banner"><span style="font-size:1.6rem">🚀</span><span><b>Website changes waiting</b><br>Publish to put them on the website.</span>' +
+    return '<div class="banner"><span style="font-size:1.6rem">🚀</span><span><b>Saved, but not on the website yet</b><br>When you have finished all your changes, press Publish once.</span>' +
       '<button type="button" class="btn terra small" data-act="publish">Publish</button></div>';
   }
 
@@ -648,26 +649,45 @@
   }
 
   // ---------- Orders
-  function ordersView() {
-    var tab = S.ordersTab;
-    var lists = {
+  function orderLists() {
+    return {
       waiting: waiting(),
       paid: S.orders.filter(function (o) { return o.status === 'paid'; }).sort(function (a, b) { return paidTime(a) < paidTime(b) ? 1 : -1; }).slice(0, 40),
       cancelled: S.orders.filter(function (o) { return o.status === 'cancelled'; }).slice(0, 40),
     };
+  }
+  function ordersView() {
+    var tab = S.ordersTab;
+    var lists = orderLists();
     var html = '<div class="hello"><h1>Orders</h1><p>Orders from the website arrive here by themselves.</p></div>' +
+      '<label class="search"><span aria-hidden="true">🔎</span><input id="orderSearch" type="search" autocomplete="off" placeholder="Search name, phone or product" value="' + esc(S.orderQuery || '') + '">' +
+      '<button type="button" class="search-x" data-act="clear-search" aria-label="Clear search"' + (S.orderQuery ? '' : ' hidden') + '>✕</button></label>' +
       '<div class="seg">' +
         segBtn('waiting', '🔔 Waiting' + (lists.waiting.length ? ' (' + lists.waiting.length + ')' : '')) +
         segBtn('paid', '✅ Paid') +
         segBtn('cancelled', '❌ Cancelled') +
       '</div>';
-    var list = lists[tab];
-    if (!list.length) {
-      html += emptyHtml(tab === 'waiting' ? '😌' : '📭', tab === 'waiting' ? 'No orders waiting. All done!' : 'Nothing here yet.');
-    } else {
-      html += '<div class="order-list">' + list.map(orderCard).join('') + '</div>';
+    return html + '<div id="orderResults">' + orderResults(lists[tab], tab) + '</div>';
+  }
+  function orderMatches(o, q) {
+    var c = o.customer || {};
+    var text = [o.id, c.name, c.phone, c.email, c.address, o.method].concat(o.items.map(function (i) { var p = itemProduct(i); return (p ? pname(p) + ' ' : '') + i.name; }))
+      .join(' ').toLowerCase();
+    var words = q.toLowerCase().split(/\s+/).filter(Boolean);
+    var qd = digits(q);
+    var phone = digits(c.phone);
+    var phoneHit = qd.length >= 4 && (phone.indexOf(qd) !== -1 || phone.indexOf(qd.replace(/^0/, '')) !== -1 || phone.replace(/^234/, '0').indexOf(qd) !== -1);
+    return phoneHit || words.every(function (w) { return text.indexOf(w) !== -1; });
+  }
+  function orderResults(list, tab) {
+    var q = (S.orderQuery || '').trim();
+    if (q) {
+      var found = S.orders.filter(function (o) { return orderMatches(o, q); });
+      if (!found.length) return emptyHtml('🔎', 'No orders match “' + q + '”. Try part of the name or phone number.');
+      return '<p class="search-note">' + plural(found.length, 'order') + ' found (Waiting, Paid and Cancelled)</p><div class="order-list">' + found.map(orderCard).join('') + '</div>';
     }
-    return html;
+    if (!list.length) return emptyHtml(tab === 'waiting' ? '😌' : '📭', tab === 'waiting' ? 'No orders waiting. All done!' : 'Nothing here yet.');
+    return '<div class="order-list">' + list.map(orderCard).join('') + '</div>';
   }
   function segBtn(id, label) { return '<button type="button" class="' + (S.ordersTab === id ? 'on' : '') + '" data-act="orders-tab" data-id="' + id + '">' + label + '</button>'; }
 
@@ -754,6 +774,7 @@
         '</div>' +
         '<div class="stock-btns"><button type="button" class="btn terra small" data-act="ask-add" data-id="' + esc(p.id) + '">➕ Add</button>' +
         '<button type="button" class="btn light small" data-act="ask-count" data-id="' + esc(p.id) + '">✏️ Count</button></div>' +
+        (st === 'out' && !p.sold_out ? '<button type="button" class="row-warn" data-act="ask-soldout" data-id="' + esc(p.id) + '">⚠️ None left, but people can still order it. <u>Show Sold out</u></button>' : '') +
         '<div class="row-foot"><button type="button" class="web" data-act="ask-soldout" data-id="' + esc(p.id) + '"><span class="switch' + (p.sold_out ? ' off' : '') + '"></span>' +
         (p.sold_out ? '<span>Website: <b style="color:var(--red)">Sold out</b></span>' : '<span>Website: <b style="color:var(--green)">On sale</b></span>') + '</button>' +
         '<button type="button" class="edit-link" data-act="edit-product" data-id="' + esc(p.id) + '">📝 Edit details</button></div></div>';
@@ -921,7 +942,7 @@
       return '<div style="display:flex;justify-content:center">' + thumb(p) + '</div>' +
         '<h2>' + (makeOut ? 'Show “Sold out”?' : 'Sell it again?') + '</h2>' +
         '<p class="lead">' + (makeOut ? 'Customers will see <b>' + esc(pname(p)) + '</b> as Sold out and can’t order it.' : 'Customers will be able to order <b>' + esc(pname(p)) + '</b> again.') +
-        '<br>It changes on the website after you <b>Publish</b>.</p>' +
+        '</p>' +
         '<div class="stack"><button type="button" class="btn ' + (makeOut ? 'red' : 'green') + ' big" data-act="do-soldout" data-id="' + esc(p.id) + '"' + (S.busy ? ' disabled' : '') + '>' +
         (S.busy ? 'Saving…' : makeOut ? '🚫 Yes, sold out' : '✅ Yes, can be ordered') + '</button>' +
         '<button type="button" class="btn light big" data-act="close-sheet">Cancel</button></div>';
@@ -937,17 +958,37 @@
     product: productSheet,
     productSaved: function (s) {
       var p = product(s.id);
-      return '<div style="display:flex;justify-content:center">' + thumb(p) + '</div><div class="big-emoji" style="font-size:2.4rem;margin-top:6px">✅</div>' +
-        '<h2>' + (s.isNew ? 'Product added!' : 'Changes saved!') + '</h2>' +
-        '<p class="lead"><b>' + esc(pname(p)) + '</b> shows on the website after you <b>Publish</b>. Publish once when you’ve finished all your changes.</p>' +
-        '<div class="stack"><button type="button" class="btn terra big" data-act="publish">🚀 Publish now</button>' +
-        '<button type="button" class="btn light big" data-act="close-sheet">Later</button></div>';
+      return '<div style="display:flex;justify-content:center">' + thumb(p) + '</div>' +
+        savedNote(s.isNew ? 'Product saved ✓' : 'Changes saved ✓', '<b>' + esc(pname(p)) + '</b> is saved.');
+    },
+    saved: function (s) { return savedNote(s.title, s.text); },
+    stockPrompt: function (s) {
+      var out = s.mode === 'out';
+      var names = s.ids.map(function (id) { return '<b>' + esc(pname(product(id))) + '</b>'; }).join(', ');
+      return '<div class="prompt-thumbs">' + s.ids.map(function (id) { return thumb(product(id)); }).join('') + '</div>' +
+        '<div class="big-emoji" style="font-size:2.4rem">' + (out ? '🚫' : '📦') + '</div>' +
+        '<h2>' + (out ? 'All gone!' : 'Back in stock!') + '</h2>' +
+        '<p class="lead">' + (out
+          ? names + (s.ids.length > 1 ? ' have' : ' has') + ' none left, but customers can still order ' + (s.ids.length > 1 ? 'them' : 'it') + ' on the website.<br><b>Show “Sold out” so nobody orders it?</b>'
+          : names + ' is in stock again, but the website still says Sold out.<br><b>Let customers order it again?</b>') + '</p>' +
+        '<div class="stack"><button type="button" class="btn ' + (out ? 'red' : 'green') + ' big" data-act="do-stock-prompt"' + (S.busy ? ' disabled' : '') + '>' +
+        (S.busy ? 'Saving…' : out ? '🚫 Yes, show Sold out' : '✅ Yes, put it back on sale') + '</button>' +
+        '<button type="button" class="btn light big" data-act="close-sheet">Not now</button></div>';
     },
     published: function (s) {
       return '<div class="big-emoji">' + (s.ok ? '🚀' : '📶') + '</div><h2>' + esc(s.title) + '</h2><p class="lead">' + esc(s.detail) + '</p>' +
         '<div class="stack"><button type="button" class="btn forest big" data-act="close-sheet">OK</button></div>';
     },
   };
+
+  // The same message after every website change: saving keeps progress, Publish puts it all online
+  function savedNote(title, text) {
+    return '<div class="big-emoji" style="font-size:2.6rem;margin-top:6px">💾</div><h2>' + esc(title) + '</h2>' +
+      '<p class="lead">' + (text ? text + ' ' : '') + 'Saving keeps your progress, but <b>the website does not change yet</b>.</p>' +
+      '<div class="save-steps"><div><b>1</b><span>Make all your changes and save each one</span></div><div><b>2</b><span>When you are completely done, press <strong>🚀 Publish</strong> once</span></div><div><b>3</b><span>Everything you saved goes on the website together (1–2 minutes)</span></div></div>' +
+      '<div class="stack"><button type="button" class="btn light big" data-act="close-sheet">👍 OK, I’m not done yet</button>' +
+      '<button type="button" class="btn terra big" data-act="publish">🚀 I’m done, publish everything</button></div>';
+  }
 
   // ============================================================ product form (add a new product / edit one)
   function cleanPath(p) { return String(p || '').replace(/^\/+/, ''); }
@@ -1244,7 +1285,8 @@
         });
       });
     },
-    'orders-tab': function (el) { S.ordersTab = el.dataset.id; render(); },
+    'orders-tab': function (el) { S.ordersTab = el.dataset.id; S.orderQuery = ''; render(); },
+    'clear-search': function () { S.orderQuery = ''; render(); },
     month: function (el) { S.month = addMonths(S.month || todayKey().slice(0, 7), +el.dataset.id); render(); },
 
     'ask-paid': function (el) { openSheet({ type: 'paid', id: el.dataset.id }); },
@@ -1261,7 +1303,7 @@
       var o = order(el.dataset.id); var now = new Date().toISOString();
       saving(function () {
         return changeOrder(o, function (t) { t.status = 'paid'; t.paid_at = now; }, 'Order ' + o.id + ': paid (' + naira(o.total) + ')')
-          .then(function () { closeSheet(); toast('Marked as paid 🎉'); render(); });
+          .then(function () { closeSheet(); toast('Marked as paid 🎉'); render(); stockPrompt(orderIds(o)); });
       });
     },
     'do-unpaid': function (el) {
@@ -1299,6 +1341,7 @@
       saving(function () {
         return addOrder(o).then(function () {
           S.basket = {}; render();
+          if (stockPrompt(items.map(function (i) { return i.id; }))) { toast('Sale saved 🎉'); return; }
           openSheet({ type: 'sold', amount: amount, items: count });
         });
       });
@@ -1314,14 +1357,14 @@
       var s = S.sheet; var p = product(s.id);
       saving(function () {
         return changeStock(function (d) { d.entries.push({ date: new Date().toISOString(), id: s.id, type: 'add', qty: s.qty }); }, 'Stock: +' + s.qty + ' ' + p.name)
-          .then(function () { closeSheet(); toast('Added ' + s.qty + ' ✓'); render(); });
+          .then(function () { closeSheet(); toast('Added ' + s.qty + ' ✓'); render(); stockPrompt([s.id]); });
       });
     },
     'do-count': function () {
       var s = S.sheet; var p = product(s.id);
       saving(function () {
         return changeStock(function (d) { d.entries.push({ date: new Date().toISOString(), id: s.id, type: 'count', qty: s.qty }); }, 'Stock: counted ' + s.qty + ' ' + p.name)
-          .then(function () { closeSheet(); toast('Saved: ' + s.qty + ' left ✓'); render(); });
+          .then(function () { closeSheet(); toast('Saved: ' + s.qty + ' left ✓'); render(); stockPrompt([s.id]); });
       });
     },
     'do-low': function () {
@@ -1334,16 +1377,41 @@
     'do-soldout': function (el) {
       var p = product(el.dataset.id); var val = !p.sold_out;
       saving(function () {
-        return writeJSON(SITE_REPO, 'content/products/' + p.id + '.json', function (d) {
-          if (!d) throw new Error('Product not found. Tap ⟳ to refresh.');
-          d.sold_out = val; return d;
-        }, 'Admin: update products "' + p.id + '" [skip netlify]', SITE_BRANCH).then(function () {
-          p.sold_out = val; setUnpublished(true); closeSheet(); render();
-          toast(val ? 'Saved. Now tap Publish 🚀' : 'Saved. Now tap Publish 🚀');
+        return setSoldOut(p.id, val).then(function () {
+          render();
+          openSheet({ type: 'saved', title: val ? 'Marked Sold out ✓' : 'Back on sale ✓', text: '<b>' + esc(pname(p)) + '</b> will show as ' + (val ? 'Sold out' : 'on sale') + '.' });
+        });
+      });
+    },
+    'do-stock-prompt': function () {
+      var s = S.sheet; var val = s.mode === 'out';
+      saving(function () {
+        return s.ids.reduce(function (chain, id) { return chain.then(function () { return setSoldOut(id, val); }); }, Promise.resolve()).then(function () {
+          render();
+          openSheet({ type: 'saved', title: val ? 'Marked Sold out ✓' : 'Back on sale ✓', text: esc(s.ids.map(function (id) { return pname(product(id)); }).join(', ')) + (val ? ' will show as Sold out.' : ' can be ordered again.') });
         });
       });
     },
   };
+  function setSoldOut(id, val) {
+    var p = product(id);
+    return writeJSON(SITE_REPO, 'content/products/' + id + '.json', function (d) {
+      if (!d) throw new Error('Product not found. Tap ⟳ to refresh.');
+      d.sold_out = val; return d;
+    }, 'Admin: update products "' + id + '" [skip netlify]', SITE_BRANCH).then(function () { p.sold_out = val; setUnpublished(true); });
+  }
+  // After stock changes: offer "Sold out" for products that ran out, or "back on sale" for ones restocked.
+  // Returns true when it opened the question (so the caller doesn't close it).
+  function stockPrompt(ids) {
+    ids = ids.filter(function (id, i) { return ids.indexOf(id) === i && product(id); });
+    var out = ids.filter(function (id) { var p = product(id); var n = stockLeft(id); return !p.sold_out && n != null && n <= 0; });
+    var back = ids.filter(function (id) { var p = product(id); var n = stockLeft(id); return p.sold_out && n != null && n > 0; });
+    if (out.length) { openSheet({ type: 'stockPrompt', mode: 'out', ids: out }); return true; }
+    if (back.length) { openSheet({ type: 'stockPrompt', mode: 'back', ids: back }); return true; }
+    return false;
+  }
+  function orderIds(o) { return o.items.map(function (i) { var p = itemProduct(i); return p ? p.id : ''; }); }
+
   // keep what was typed in the checkout sheet when it is redrawn
   function keepInputs() {
     var a = document.getElementById('sellAmount'); var n = document.getElementById('sellName');
@@ -1371,6 +1439,14 @@
     if (fn) { e.preventDefault(); fn(a, e); }
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && S.sheet && !S.busy) ACTIONS['close-sheet'](); });
+  view.addEventListener('input', function (e) {
+    if (e.target.id !== 'orderSearch') return;
+    S.orderQuery = e.target.value;
+    var box = document.getElementById('orderResults');
+    var x = document.querySelector('.search-x'); if (x) x.hidden = !S.orderQuery;
+    if (box) box.innerHTML = orderResults(orderLists()[S.ordersTab], S.ordersTab);
+    document.querySelectorAll('.seg button').forEach(function (b) { b.classList.toggle('dim', !!S.orderQuery); });
+  });
   sheetEl.addEventListener('input', function (e) {
     if (e.target.id === 'sellAmount' || e.target.id === 'goalAmount') {
       var n = digits(e.target.value);
