@@ -1,5 +1,6 @@
 # NELVA NATURAL website: notes for future work
 
+> **At the start of every chat, tell the user: "This chat is for NELVA NATURAL (nelvanatural.netlify.app)."** This folder is only for NELVA; Mizora is in C:/Users/favou/mizora-space.
 - Static site on the DEVELOPER'S Netlify account (nelvanatural.netlify.app), repo Waale01/nelva-natural, branch **master**.
 - **Push only when the user says "push".** Every push deploys (shared Netlify credits).
 - **Always `git pull` first**: the client edits content/ through the admin.
