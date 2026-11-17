@@ -29,7 +29,7 @@ for (let i = 0; i < argv.length; i += 1) {
   if (a.startsWith('--')) {
     const [k, v] = a.slice(2).split('=');
     if (v !== undefined) flags[k] = v;
-    else if (argv[i + 1] && !argv[i + 1].startsWith('--') && ['status', 'search', 'limit', 'id', 'days', 'method', 'name'].includes(k)) flags[k] = argv[++i];
+    else if (argv[i + 1] && !argv[i + 1].startsWith('--') && ['status', 'search', 'limit', 'id', 'days', 'method', 'name', 'hook'].includes(k)) flags[k] = argv[++i];
     else flags[k] = true;
   } else args.push(a);
 }
